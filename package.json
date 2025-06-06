@@ -1,0 +1,81 @@
+{
+  "name": "range-transform",
+  "publisher": "tomchen",
+  "displayName": "Range & Transform",
+  "description": "Insert sequence from range (2:9, Mon:Fri:2); transform multi-selections with JS (n*3, letter(n))",
+  "version": "1.0.0",
+  "icon": "icon.png",
+  "packageManager": "bun@1.2.2",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "link",
+    "paste",
+    "url"
+  ],
+  "bugs": {
+    "url": "https://github.com/tomchen/vscode-range-transform/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomchen/vscode-range-transform"
+  },
+  "license": "MIT",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "range-transform.range",
+        "title": "R&T: Insert Sequence from Range"
+      },
+      {
+        "command": "range-transform.transform",
+        "title": "R&T: Transform Multi-Selections"
+      }
+    ]
+  },
+  "activationEvents": [],
+  "scripts": {
+    "vscode:prepublish": "bun run package",
+    "compile": "bun run check-types && bun run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "bun run check-types && bun run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "bun run compile-tests && bun run compile && bun run lint",
+    "checkall": "bun run check-types && bun run lint && bun run format",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/module-alias": "^2.0.4",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.25.1",
+    "eslint": "^9.23.0",
+    "module-alias": "^2.2.3",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "convnum": "*"
+  }
+}

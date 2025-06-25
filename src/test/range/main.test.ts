@@ -8,6 +8,11 @@ suite('range main function', () => {
       assert.deepStrictEqual(result, ['1', '2', '3', '4', '5'])
     })
 
+    test('should generate with single Chinese char in Heavenly Stem', () => {
+      const result = main('甲', 4)
+      assert.deepStrictEqual(result, ['甲', '乙', '丙', '丁'])
+    })
+
     test('should generate hexadecimal sequence with proper formatting', () => {
       const result = main('0xa:0xf', 10)
       // Should preserve the lowercase hex format from the input
@@ -66,6 +71,81 @@ suite('range main function', () => {
       const result = main('II:VI', 10)
       // Should generate roman numerals II, III, IV, V, VI
       assert.deepStrictEqual(result, ['II', 'III', 'IV', 'V', 'VI'])
+    })
+  })
+
+  suite('Circular functionality', () => {
+    test('should generate with circular numeral as start without stop or step and with selectionCount > numeralLength', () => {
+      const result = main('mon', 8)
+      assert.deepStrictEqual(result, [
+        'mon',
+        'tue',
+        'wed',
+        'thu',
+        'fri',
+        'sat',
+        'sun',
+        'mon',
+      ])
+    })
+
+    test('should generate with circular numeral as start without stop and with step > numeralLength', () => {
+      const result = main('mon::10', 6)
+      // mon is 1, 1+10=11, 11 wraps around to 4 which is thu, and so on
+      assert.deepStrictEqual(result, ['mon', 'thu', 'sun', 'wed', 'sat', 'tue'])
+    })
+
+    test('should handle negative step with circular numerals', () => {
+      const result = main('fri::-2', 4)
+      // fri is 5, 5-2=3 (wed), 3-2=1 (mon), 1-2=-1 wraps to 6 (sat)
+      assert.deepStrictEqual(result, ['fri', 'wed', 'mon', 'sat'])
+    })
+
+    test('should handle step equal to numeral length (should repeat same value)', () => {
+      const result = main('tue::7', 4)
+      // tue is 2, 2+7=9 wraps to 2 (tue), and so on
+      assert.deepStrictEqual(result, ['tue', 'tue', 'tue', 'tue'])
+    })
+
+    test('should handle step that is multiple of numeral length', () => {
+      const result = main('wed::14', 3)
+      // wed is 3, 3+14=17 wraps to 3 (wed), and so on
+      assert.deepStrictEqual(result, ['wed', 'wed', 'wed'])
+    })
+
+    test('should work with latin letters and large steps', () => {
+      const result = main('a::30', 4)
+      // a is 1, 1+30=31 wraps to 5 (e), 5+30=35 wraps to 9 (i), 9+30=39 wraps to 13 (m)
+      assert.deepStrictEqual(result, ['a', 'e', 'i', 'm'])
+    })
+
+    test('should work with month names', () => {
+      const result = main('jan::5', 3)
+      // jan is 1, 1+5=6 (jun), 6+5=11 (nov)
+      assert.deepStrictEqual(result, ['jan', 'jun', 'nov'])
+    })
+
+    test('should handle starting from last element of circular sequence', () => {
+      const result = main('sun::1', 3)
+      // sun is 7, 7+1=8 wraps to 1 (mon), 1+1=2 (tue)
+      assert.deepStrictEqual(result, ['sun', 'mon', 'tue'])
+    })
+
+    test('should handle zero step with circular numerals', () => {
+      const result = main('thu::0', 3)
+      // Zero step should repeat the same value
+      assert.deepStrictEqual(result, ['thu', 'thu', 'thu'])
+    })
+
+    test('should handle very large steps that wrap multiple times', () => {
+      const result = main('mon::50', 3)
+      // mon is 1, 1+50=51 wraps to 2 (tue), 2+50=52 wraps to 3 (wed)
+      assert.deepStrictEqual(result, ['mon', 'tue', 'wed'])
+    })
+
+    test('should handle step equal to -numeral length (should repeat same value) for Chinese Heavenly Stems', () => {
+      const result = main('丙::-10', 3)
+      assert.deepStrictEqual(result, ['丙', '丙', '丙'])
     })
   })
 
@@ -183,6 +263,210 @@ suite('range main function', () => {
       // The main function catches conversion errors and falls back to toString()
       const result = main('1:3', 10)
       assert.deepStrictEqual(result, ['1', '2', '3'])
+    })
+  })
+
+  suite('Date functionality', () => {
+    suite('Basic date sequences', () => {
+      test('should generate Y-M-D date sequence with step 1', () => {
+        const result = main('2023-01-01:2023-01-05', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+          '2023-01-04',
+          '2023-01-05',
+        ])
+      })
+
+      test('should generate D-M-Y date sequence with step 1', () => {
+        const result = main('01.01.2023:05.01.2023', 10)
+        assert.deepStrictEqual(result, [
+          '01.01.2023',
+          '02.01.2023',
+          '03.01.2023',
+          '04.01.2023',
+          '05.01.2023',
+        ])
+      })
+
+      test('should generate date sequence with step 2', () => {
+        const result = main('2023-01-01:2023-01-10:2', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-03',
+          '2023-01-05',
+          '2023-01-07',
+          '2023-01-09',
+        ])
+      })
+
+      test('should generate date sequence with negative step', () => {
+        const result = main('2023-01-05:2023-01-01:-1', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01-05',
+          '2023-01-04',
+          '2023-01-03',
+          '2023-01-02',
+          '2023-01-01',
+        ])
+      })
+    })
+
+    suite('Date sequences without stop', () => {
+      test('should generate date sequence starting from date without stop', () => {
+        const result = main('2023-01-01', 4)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+          '2023-01-04',
+        ])
+      })
+
+      test('should generate date sequence with step without stop', () => {
+        const result = main('2023-01-01::3', 3)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-04',
+          '2023-01-07',
+        ])
+      })
+    })
+
+    suite('Different date formats', () => {
+      test('should handle slash separator (M/D/Y)', () => {
+        const result = main('01/15/2023:01/18/2023', 10)
+        assert.deepStrictEqual(result, [
+          '01/15/2023',
+          '01/16/2023',
+          '01/17/2023',
+          '01/18/2023',
+        ])
+      })
+
+      test('should handle dot separator (D.M.Y)', () => {
+        const result = main('15.01.2023:18.01.2023', 10)
+        assert.deepStrictEqual(result, [
+          '15.01.2023',
+          '16.01.2023',
+          '17.01.2023',
+          '18.01.2023',
+        ])
+      })
+    })
+
+    suite('Month-Year functionality', () => {
+      test('should generate month-year sequence', () => {
+        const result = main('2023-01:2023-04', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01',
+          '2023-02',
+          '2023-03',
+          '2023-04',
+        ])
+      })
+
+      test('should generate month-year sequence with step 2', () => {
+        const result = main('2023-01:2023-07:2', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01',
+          '2023-03',
+          '2023-05',
+          '2023-07',
+        ])
+      })
+
+      test('should generate month-year sequence across years', () => {
+        const result = main('2023-11:2024-02', 10)
+        assert.deepStrictEqual(result, [
+          '2023-11',
+          '2023-12',
+          '2024-01',
+          '2024-02',
+        ])
+      })
+
+      test('should generate month-year sequence without stop', () => {
+        const result = main('2023-01', 3)
+        assert.deepStrictEqual(result, ['2023-01', '2023-02', '2023-03'])
+      })
+    })
+
+    suite('Month-Day functionality', () => {
+      test('should generate month-day sequence', () => {
+        const result = main('01-15:01-18', 10)
+        assert.deepStrictEqual(result, ['01-15', '01-16', '01-17', '01-18'])
+      })
+
+      test('should generate month-day sequence across months', () => {
+        const result = main('01-30:02-02', 10)
+        assert.deepStrictEqual(result, ['01-30', '01-31', '02-01', '02-02'])
+      })
+    })
+
+    suite('Edge cases and error handling', () => {
+      test('should return empty array for invalid date format', () => {
+        const result = main('invalid-date:2023-01-02', 10)
+        assert.deepStrictEqual(result, [])
+      })
+
+      test('should return empty array when start is date but stop is not', () => {
+        const result = main('2023-01-01:invalid', 10)
+        assert.deepStrictEqual(result, [])
+      })
+
+      test('should return empty array for incompatible date formats', () => {
+        const result = main('2023-01-01:15.02.2023', 10)
+        // Different formats that can't be reconciled
+        assert.deepStrictEqual(result, [])
+      })
+
+      test('should handle leap year dates correctly', () => {
+        const result = main('2024-02-28:2024-03-02', 10)
+        assert.deepStrictEqual(result, [
+          '2024-02-28',
+          '2024-02-29',
+          '2024-03-01',
+          '2024-03-02',
+        ])
+      })
+    })
+
+    suite('Format priority', () => {
+      test('should use prioritized format when multiple interpretations exist', () => {
+        // This date could be interpreted as Y-M-D or Y-D-M
+        const result = main('2023-01-12:2023-01-15', 10)
+        // Should prioritize Y-M-D format according to DATE_FORMAT_PRIORITY
+        assert.deepStrictEqual(result, [
+          '2023-01-12',
+          '2023-01-13',
+          '2023-01-14',
+          '2023-01-15',
+        ])
+      })
+    })
+
+    suite('Cross-boundary sequences', () => {
+      test('should handle month boundaries correctly', () => {
+        const result = main('2023-01-30:2023-02-02', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01-30',
+          '2023-01-31',
+          '2023-02-01',
+          '2023-02-02',
+        ])
+      })
+
+      test('should handle year boundaries correctly', () => {
+        const result = main('2023-12-30:2024-01-02', 10)
+        assert.deepStrictEqual(result, [
+          '2023-12-30',
+          '2023-12-31',
+          '2024-01-01',
+          '2024-01-02',
+        ])
+      })
     })
   })
 })

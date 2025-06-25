@@ -1,31 +1,9 @@
-import type { NumType } from 'convnum'
+import { VALID_NUM_TYPES, type NumType } from 'convnum'
 
 /**
  * Type priority order for resolving multiple common types
  */
-export const TYPE_PRIORITY: NumType[] = [
-  'decimal',
-  'latin_letter',
-  'greek_letter',
-  'month_name',
-  'day_of_week',
-  'roman',
-  'chinese_words',
-  'chinese_financial',
-  'chinese_heavenly_stem',
-  'chinese_earthly_branch',
-  'chinese_solar_term',
-  'cyrillic_letter',
-  'binary',
-  'octal',
-  'hexadecimal',
-  'arabic',
-  'english_cardinal',
-  'english_words',
-  'french_words',
-  'astrological_sign',
-  'nato_phonetic',
-]
+export const TYPE_PRIORITY: NumType[] = VALID_NUM_TYPES
 
 export const FALLBACK_SEQUENCE_LENGTH = 10
 

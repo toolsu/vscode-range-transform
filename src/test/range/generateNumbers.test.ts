@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 
-import { generateNumbers } from '../utils/range/generateNumbers'
+import { generateNumbers } from '@/utils/range/generateNumbers'
 
 suite('generateNumbers function', () => {
   suite('normal cases', () => {

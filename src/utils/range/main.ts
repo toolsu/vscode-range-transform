@@ -1,32 +1,14 @@
 import { parse } from './parse'
 import { normalize } from './normalize'
 import { generateNumbers } from './generateNumbers'
-import { getTypes, convertFrom, convertTo, type NumType } from 'convnum'
-import { TYPE_PRIORITY } from '@/const/const'
-
-/**
- * Find the common types between start and stop, then return the highest priority type
- */
-function findCommonType(
-  startTypes: NumType[],
-  stopTypes: NumType[],
-): NumType | null {
-  const commonTypes = startTypes.filter((type) => stopTypes.includes(type))
-
-  if (commonTypes.length === 0) {
-    return null
-  }
-
-  // Find the first type in priority order that exists in common types
-  for (const priorityType of TYPE_PRIORITY) {
-    if (commonTypes.includes(priorityType)) {
-      return priorityType
-    }
-  }
-
-  // Fallback to first common type (shouldn't happen with complete priority list)
-  return commonTypes[0]
-}
+import {
+  getTypes,
+  convertFrom,
+  convertTo,
+  type NumType,
+  type TypeInfo,
+} from 'convnum'
+import { findCommonType } from './findCommonType'
 
 /**
  * Main function that processes a range command and generates the corresponding sequence.
@@ -47,43 +29,42 @@ export const main = (command: string, selectionCount: number): string[] => {
 
   const { start, stop, step } = parsed
 
-  // Get types for start and stop values
-  const startTypes = getTypes(start)
-  const stopTypes = stop ? getTypes(stop) : []
+  // Get TypeInfo arrays for start and stop values
+  const startTypeInfos = getTypes(start)
+  const stopTypeInfos = stop ? getTypes(stop) : []
+
+  // Extract type strings for findCommonType compatibility
+  const startTypes = startTypeInfos.map((info) => info.type)
+  const stopTypes = stopTypeInfos.map((info) => info.type)
 
   // If start has no types, return empty
   if (startTypes.length === 0) {
     return []
   }
 
-  let commonType: NumType
-
-  if (stop === undefined) {
-    // If no stop value, use the first type from start with highest priority
-    commonType =
-      startTypes.find((type) => TYPE_PRIORITY.includes(type)) || startTypes[0]
-  } else {
-    // If stop has no types, return empty
-    if (stopTypes.length === 0) {
-      return []
-    }
-
-    // Find common type between start and stop
-    const foundCommonType = findCommonType(startTypes, stopTypes)
-    if (!foundCommonType) {
-      return []
-    }
-    commonType = foundCommonType
+  // Find common type between start and stop
+  const foundCommonType = findCommonType(startTypes, stopTypes)
+  if (!foundCommonType) {
+    return []
   }
+  const commonType: NumType = foundCommonType
 
-  // Convert start and stop to numbers using the common type
+  // Find the corresponding TypeInfo object for the common type
+  const startTypeInfo = startTypeInfos.find((info) => info.type === commonType)
+  const stopTypeInfo = stopTypeInfos.find((info) => info.type === commonType)
+
+  // Use start TypeInfo if available, fallback to stop TypeInfo, then fallback to basic type object
+  const typeInfoForConversion: TypeInfo = startTypeInfo ||
+    stopTypeInfo || { type: commonType }
+
+  // Convert start and stop to numbers using the common TypeInfo
   let startNum: number
   let stopNum: number | undefined
   let stepNum: number | undefined
 
   try {
-    startNum = convertFrom(start, commonType)
-    stopNum = stop ? convertFrom(stop, commonType) : undefined
+    startNum = convertFrom(start, typeInfoForConversion)
+    stopNum = stop ? convertFrom(stop, typeInfoForConversion) : undefined
     stepNum = step ? parseFloat(step) : undefined
   } catch (error) {
     // Conversion failed
@@ -105,9 +86,9 @@ export const main = (command: string, selectionCount: number): string[] => {
     normalized.length,
   )
 
-  // Convert numbers back to the original type
+  // Convert numbers back to the original type using the TypeInfo object
   try {
-    return numbers.map((num) => convertTo(num, commonType))
+    return numbers.map((num) => convertTo(num, typeInfoForConversion))
   } catch (error) {
     // Conversion failed, fallback to decimal representation
     return numbers.map((num) => num.toString())

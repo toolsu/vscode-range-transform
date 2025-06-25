@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 
-import { normalize } from '../utils/range/normalize'
+import { normalize } from '@/utils/range/normalize'
 import { FALLBACK_SEQUENCE_LENGTH } from '@/const/const'
 
 suite('normalize function', () => {

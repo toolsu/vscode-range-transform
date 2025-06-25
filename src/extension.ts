@@ -13,10 +13,30 @@ function showPreview(
   editor: vscode.TextEditor,
   selections: readonly vscode.Selection[],
   previews: string[],
+  useSelectionOrder: boolean = false,
 ) {
   const decorations: vscode.DecorationOptions[] = []
 
-  selections.forEach((selection, index) => {
+  // Create array with selections and their original indices
+  const selectionsWithIndex = Array.from(selections).map(
+    (selection, originalIndex) => ({
+      selection,
+      originalIndex,
+    }),
+  )
+
+  // Sort by document order unless useSelectionOrder is true
+  if (!useSelectionOrder) {
+    selectionsWithIndex.sort((a, b) => {
+      const lineCompare = a.selection.start.line - b.selection.start.line
+      if (lineCompare !== 0) {
+        return lineCompare
+      }
+      return a.selection.start.character - b.selection.start.character
+    })
+  }
+
+  selectionsWithIndex.forEach(({ selection }, index) => {
     // Get the corresponding preview item for this selection
     const preview = index < previews.length ? previews[index] : ''
 
@@ -57,9 +77,29 @@ async function applyResults(
   editor: vscode.TextEditor,
   selections: readonly vscode.Selection[],
   results: string[],
+  useSelectionOrder: boolean = false,
 ) {
+  // Create array with selections and their original indices
+  const selectionsWithIndex = Array.from(selections).map(
+    (selection, originalIndex) => ({
+      selection,
+      originalIndex,
+    }),
+  )
+
+  // Sort by document order unless useSelectionOrder is true
+  if (!useSelectionOrder) {
+    selectionsWithIndex.sort((a, b) => {
+      const lineCompare = a.selection.start.line - b.selection.start.line
+      if (lineCompare !== 0) {
+        return lineCompare
+      }
+      return a.selection.start.character - b.selection.start.character
+    })
+  }
+
   await editor.edit((editBuilder) => {
-    selections.forEach((selection, index) => {
+    selectionsWithIndex.forEach(({ selection }, index) => {
       // Get the corresponding result item for this selection
       const result = index < results.length ? results[index] : ''
 

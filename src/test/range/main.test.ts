@@ -184,6 +184,16 @@ suite('range main function', () => {
         '0x13',
       ])
     })
+
+    test('should preserve Chinese Simplified/Traditional', () => {
+      const resultStartOnly = main('貳', 5)
+      const resultTrad = main('貳:陸', 10)
+      const resultMixed = main('貳:陆', 10)
+
+      assert.deepStrictEqual(resultStartOnly, ['貳', '叄', '肆', '伍', '陸'])
+      assert.deepStrictEqual(resultTrad, ['貳', '叄', '肆', '伍', '陸'])
+      assert.deepStrictEqual(resultMixed, ['貳', '叄', '肆', '伍', '陸'])
+    })
   })
 
   suite('Edge cases', () => {
@@ -416,10 +426,21 @@ suite('range main function', () => {
         assert.deepStrictEqual(result, [])
       })
 
-      test('should return empty array for incompatible date formats', () => {
+      test('should fall back to start format for incompatible date formats', () => {
         const result = main('2023-01-01:15.02.2023', 10)
-        // Different formats that can't be reconciled
-        assert.deepStrictEqual(result, [])
+        // Different formats - should fall back to start's format
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+          '2023-01-04',
+          '2023-01-05',
+          '2023-01-06',
+          '2023-01-07',
+          '2023-01-08',
+          '2023-01-09',
+          '2023-01-10',
+        ])
       })
 
       test('should handle leap year dates correctly', () => {
@@ -437,12 +458,117 @@ suite('range main function', () => {
       test('should use prioritized format when multiple interpretations exist', () => {
         // This date could be interpreted as Y-M-D or Y-D-M
         const result = main('2023-01-12:2023-01-15', 10)
-        // Should prioritize Y-M-D format according to DATE_FORMAT_PRIORITY
+        // Should prioritize Y-M-D format according to convnum's compareDateFormatOrder
         assert.deepStrictEqual(result, [
           '2023-01-12',
           '2023-01-13',
           '2023-01-14',
           '2023-01-15',
+        ])
+      })
+
+      test('should prefer Y-M2-D2 over Y-M1-D1 format', () => {
+        // Both formats are valid, but Y-M2-D2 should have higher priority
+        const result = main('2023-01-01:2023-01-03', 10)
+        // Should use Y-M2-D2 format (zero-padded months/days)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+        ])
+      })
+
+      test('should prefer D2.M2.Y over D1.M1.Y format', () => {
+        // Both formats are valid, but D2.M2.Y should have higher priority
+        const result = main('01.01.2023:03.01.2023', 10)
+        // Should use D2.M2.Y format (zero-padded days/months)
+        assert.deepStrictEqual(result, [
+          '01.01.2023',
+          '02.01.2023',
+          '03.01.2023',
+        ])
+      })
+
+      test('should handle incompatible date formats with different separators', () => {
+        // One uses dash, other uses dot - but should use start's format
+        const result = main('2023-01-01:06.01.2023', 10)
+        // Should fall back to start's format and treat as no stop (generate selectionCount elements)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+          '2023-01-04',
+          '2023-01-05',
+          '2023-01-06',
+          '2023-01-07',
+          '2023-01-08',
+          '2023-01-09',
+          '2023-01-10',
+        ])
+      })
+    })
+
+    suite('Days vs Months handling', () => {
+      test('should use days property for date sequences with day components', () => {
+        // Year-Month-Day dates should use days property internally
+        const result = main('2023-01-01:2023-01-03', 10)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+        ])
+      })
+
+      test('should use months property for year-month sequences', () => {
+        // Year-Month dates should use months property internally
+        const result = main('2023-01:2023-03', 10)
+        assert.deepStrictEqual(result, ['2023-01', '2023-02', '2023-03'])
+      })
+
+      test('should handle month-day sequences using days property', () => {
+        // Month-Day dates should use days property internally
+        const result = main('01-28:02-02', 10)
+        assert.deepStrictEqual(result, [
+          '01-28',
+          '01-29',
+          '01-30',
+          '01-31',
+          '02-01',
+          '02-02',
+        ])
+      })
+
+      test('should handle year boundaries with day-based sequences', () => {
+        // Cross-year sequences should work with days property
+        const result = main('2023-12-30:2024-01-02', 10)
+        assert.deepStrictEqual(result, [
+          '2023-12-30',
+          '2023-12-31',
+          '2024-01-01',
+          '2024-01-02',
+        ])
+      })
+    })
+
+    suite('Format fallback behavior', () => {
+      test('should fallback to first format when no format found in priority list', () => {
+        // This tests the fallback mechanism in findCommonDateFormat
+        // Even if a format isn't known, it should still work
+        const result = main('2023-01-01', 3)
+        assert.deepStrictEqual(result, [
+          '2023-01-01',
+          '2023-01-02',
+          '2023-01-03',
+        ])
+      })
+
+      test('should handle single date input with multiple possible formats', () => {
+        // Single date with ambiguous format should pick highest priority
+        const result = main('2023-12-01', 3)
+        assert.deepStrictEqual(result, [
+          '2023-12-01',
+          '2023-12-02',
+          '2023-12-03',
         ])
       })
     })

@@ -1,5 +1,4 @@
 import { NumType } from 'convnum'
-import { TYPE_PRIORITY } from '@/const/const'
 
 /**
  * Finds the highest priority common type between start and stop value types.
@@ -14,7 +13,7 @@ import { TYPE_PRIORITY } from '@/const/const'
  * **Logic:**
  * 1. If stopTypes is empty, use startTypes as candidates
  * 2. Otherwise, find types that exist in both startTypes and stopTypes arrays
- * 3. Return the one with highest priority from TYPE_PRIORITY
+ * 3. Return the first one (already sorted by convnum)
  * 4. If no common types exist, return null (incompatible start/stop types)
  *
  * **Examples:**
@@ -37,12 +36,13 @@ export const findCommonType = (
     return null
   }
 
+  // commonTypes retains order of startTypes, which is already sorted by convnum
   // Find the first type in priority order that exists in common types
-  for (const priorityType of TYPE_PRIORITY) {
-    if (commonTypes.includes(priorityType)) {
-      return priorityType
-    }
-  }
+  // for (const priorityType of TYPE_PRIORITY) {
+  //   if (commonTypes.includes(priorityType)) {
+  //     return priorityType
+  //   }
+  // }
 
   // Fallback to first common type (shouldn't happen with complete priority list)
   return commonTypes[0]

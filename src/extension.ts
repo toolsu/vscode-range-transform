@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { main } from './utils/range/main'
-import { STYLES } from '@/const/const'
+import { STYLES } from '@/const/visual'
 import { TEXT } from '@/const/text'
 
 // Decoration type for preview

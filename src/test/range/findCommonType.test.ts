@@ -1,12 +1,14 @@
 import { findCommonType } from '@/utils/range/findCommonType'
 import * as assert from 'assert'
-import type { NumType } from 'convnum'
+import { compareNumTypeOrder, type NumType } from 'convnum'
 
 suite('findCommonType function', () => {
   suite('Basic functionality', () => {
     test('should return highest priority common type', () => {
       const startTypes: NumType[] = ['binary', 'decimal', 'roman']
       const stopTypes: NumType[] = ['decimal', 'roman', 'octal']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
@@ -34,6 +36,8 @@ suite('findCommonType function', () => {
     test('should prefer decimal over other types', () => {
       const startTypes: NumType[] = ['roman', 'decimal', 'binary']
       const stopTypes: NumType[] = ['binary', 'decimal', 'octal']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'decimal')
     })
@@ -41,15 +45,17 @@ suite('findCommonType function', () => {
     test('should prefer roman over binary when decimal not available', () => {
       const startTypes: NumType[] = ['roman', 'binary']
       const stopTypes: NumType[] = ['binary', 'roman']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'roman')
     })
 
-    test('should follow TYPE_PRIORITY order strictly', () => {
+    test('should follow convnum order strictly', () => {
       const startTypes: NumType[] = [
-        'cyrillic_letter',
-        'greek_letter',
         'latin_letter',
+        'greek_letter',
+        'cyrillic_letter',
       ]
       const stopTypes: NumType[] = [
         'latin_letter',
@@ -59,7 +65,7 @@ suite('findCommonType function', () => {
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
-        'latin_letter',
+        'latin_letter', // determined by convnum's VALID_NUM_TYPES order
         'Should return latin_letter as it has higher priority',
       )
     })
@@ -67,8 +73,9 @@ suite('findCommonType function', () => {
 
   suite('Edge cases', () => {
     test('should use startTypes when stopTypes is empty array', () => {
-      const startTypes: NumType[] = ['roman', 'decimal']
+      const startTypes: NumType[] = ['decimal', 'roman']
       const stopTypes: NumType[] = []
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
@@ -78,8 +85,9 @@ suite('findCommonType function', () => {
     })
 
     test('should use startTypes when stopTypes is empty array (a-f)', () => {
-      const startTypes: NumType[] = ['hexadecimal', 'latin_letter']
+      const startTypes: NumType[] = ['latin_letter', 'hexadecimal']
       const stopTypes: NumType[] = []
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
@@ -91,6 +99,7 @@ suite('findCommonType function', () => {
     test('should return null when startTypes is empty array', () => {
       const startTypes: NumType[] = []
       const stopTypes: NumType[] = ['decimal', 'roman']
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, null, 'Empty startTypes should result in null')
     })
@@ -128,6 +137,8 @@ suite('findCommonType function', () => {
         'binary',
         'decimal',
       ]
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
@@ -141,6 +152,8 @@ suite('findCommonType function', () => {
     test('should handle numeric types correctly', () => {
       const startTypes: NumType[] = ['binary', 'octal', 'hexadecimal']
       const stopTypes: NumType[] = ['hexadecimal', 'decimal']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'hexadecimal')
     })
@@ -148,6 +161,8 @@ suite('findCommonType function', () => {
     test('should handle letter types correctly', () => {
       const startTypes: NumType[] = ['latin_letter', 'greek_letter']
       const stopTypes: NumType[] = ['greek_letter', 'cyrillic_letter']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'greek_letter')
     })
@@ -155,6 +170,8 @@ suite('findCommonType function', () => {
     test('should handle word types correctly', () => {
       const startTypes: NumType[] = ['english_words', 'french_words']
       const stopTypes: NumType[] = ['french_words', 'chinese_words']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'french_words')
     })
@@ -162,6 +179,8 @@ suite('findCommonType function', () => {
     test('should handle date/time types correctly', () => {
       const startTypes: NumType[] = ['month_name', 'day_of_week']
       const stopTypes: NumType[] = ['day_of_week', 'astrological_sign']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(result, 'day_of_week')
     })
@@ -183,8 +202,10 @@ suite('findCommonType function', () => {
     })
 
     test('should handle "I" and "V" (both detected as latin_letter)', () => {
-      const startTypes: NumType[] = ['roman', 'latin_letter']
-      const stopTypes: NumType[] = ['roman', 'latin_letter']
+      const startTypes: NumType[] = ['latin_letter', 'roman']
+      const stopTypes: NumType[] = ['latin_letter', 'roman']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,
@@ -206,8 +227,10 @@ suite('findCommonType function', () => {
 
     test('should handle ambiguous values with multiple type matches', () => {
       // Example: "C" could be hexadecimal, roman numeral, or latin letter
-      const startTypes: NumType[] = ['hexadecimal', 'roman', 'latin_letter']
-      const stopTypes: NumType[] = ['roman', 'latin_letter']
+      const startTypes: NumType[] = ['latin_letter', 'roman', 'hexadecimal']
+      const stopTypes: NumType[] = ['latin_letter', 'roman']
+      startTypes.sort((a, b) => compareNumTypeOrder(a, b))
+      stopTypes.sort((a, b) => compareNumTypeOrder(a, b))
       const result = findCommonType(startTypes, stopTypes)
       assert.strictEqual(
         result,

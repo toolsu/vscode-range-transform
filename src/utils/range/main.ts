@@ -6,14 +6,12 @@ import {
   convertFrom,
   convertTo,
   parseDateString,
-  formatDateString,
+  formatDayString,
   formatMonthString,
-  type NumType,
-  type TypeInfo,
   type ParseDateResult,
-  type DateInterpretation,
 } from 'convnum'
 import { findCommonType } from './findCommonType'
+import { findCommonDateFormat } from './findCommonDateFormat'
 
 /**
  * Main function that processes a range command and generates the corresponding sequence.
@@ -43,6 +41,7 @@ export const main = (command: string, selectionCount: number): string[] => {
     const startDateResult = parseDateString(start)
     let stopDateResult: ParseDateResult | null = null
 
+    // If stop is provided, try to parse it as a date
     if (stop) {
       try {
         stopDateResult = parseDateString(stop)
@@ -53,108 +52,99 @@ export const main = (command: string, selectionCount: number): string[] => {
       }
     }
 
-    // Find the best compatible format between start and stop (or just use start format)
-    let bestFormat: string | null = null
-    let startValue: number | undefined
-    let stopValue: number | undefined
+    // Find the best compatible format between start and stop
+    const bestFormat = findCommonDateFormat(startDateResult, stopDateResult)
 
-    if (stopDateResult) {
-      // Both start and stop are dates - choose best interpretations
-      let startInterp = startDateResult[0]
-      let stopInterp = stopDateResult[0]
-
-      // Prefer interpretations with more padding (more '2's in format)
-      for (const interp of startDateResult) {
-        const currentPadding = (startInterp.format.match(/2/g) || []).length
-        const newPadding = (interp.format.match(/2/g) || []).length
-        if (newPadding > currentPadding) {
-          startInterp = interp
-        }
-      }
-
-      for (const interp of stopDateResult) {
-        const currentPadding = (stopInterp.format.match(/2/g) || []).length
-        const newPadding = (interp.format.match(/2/g) || []).length
-        if (newPadding > currentPadding) {
-          stopInterp = interp
-        }
-      }
-
-      // Check if both have the same value type (both timestamps or both months)
-      const startHasMonths = startInterp.months !== undefined
-      const stopHasMonths = stopInterp.months !== undefined
-
-      if (startHasMonths === stopHasMonths) {
-        // Compatible - both have same value type
-        bestFormat = startInterp.format
-        startValue = startInterp.months ?? startInterp.timestamp
-        stopValue = stopInterp.months ?? stopInterp.timestamp
-      }
+    if (!bestFormat) {
+      // No compatible format found between start and stop
+      // Fall through to regular (non-date) processing
     } else {
-      // Only start is a date - prefer interpretation with more padding
-      let startInterp = startDateResult[0]
-      for (const interp of startDateResult) {
-        const currentPadding = (startInterp.format.match(/2/g) || []).length
-        const newPadding = (interp.format.match(/2/g) || []).length
-        if (newPadding > currentPadding) {
-          startInterp = interp
-        }
-      }
-      bestFormat = startInterp.format
-      startValue = startInterp.months ?? startInterp.timestamp
-    }
-
-    // If we successfully parsed dates, process as date sequence
-    if (bestFormat && startValue !== undefined) {
-      const stepNum = step ? parseFloat(step) : 1
-
-      // Calculate actual step based on whether we're using timestamps or months
-      let actualStep: number
-      const hasMonths = startDateResult.some(
-        (interp) => interp.format === bestFormat && interp.months !== undefined,
+      // Find the corresponding DateInterpretations for the best format
+      const startInterp = startDateResult.find(
+        (interp) => interp.format === bestFormat,
+      )
+      const stopInterp = stopDateResult?.find(
+        (interp) => interp.format === bestFormat,
       )
 
-      if (hasMonths) {
-        // For month-based dates, step is in months
-        actualStep = stepNum
+      if (!startInterp) {
+        // This shouldn't happen given our logic above, but handle it gracefully
+        // Fall through to regular processing
       } else {
-        // For timestamp-based dates, step is in days, convert to milliseconds
-        actualStep = stepNum * 86400000 // 86400000 ms = 1 day
-      }
+        // Determine if this is a year-month format (has months property) or date format (has days property)
+        const isYearMonth = startInterp.months !== undefined
+        const isDayBased = startInterp.days !== undefined
 
-      // Use existing normalize and generateNumbers functions
-      const normalized = normalize(
-        startValue,
-        stopValue,
-        actualStep,
-        selectionCount,
-      )
-      if (!normalized) {
-        return []
-      }
+        // Extract the numeric values for calculation
+        let startValue: number
+        let stopValue: number | undefined
 
-      const numbers = generateNumbers(
-        normalized.start,
-        normalized.step,
-        normalized.length,
-      )
+        if (isYearMonth) {
+          // Use months as the numeric value for year-month dates
+          startValue = startInterp.months!
+          stopValue = stopInterp?.months
+        } else if (isDayBased) {
+          // Use days as the numeric value for day-based dates
+          startValue = startInterp.days!
+          stopValue = stopInterp?.days
+        } else {
+          // Fallback to timestamp (though this shouldn't be needed with new convnum)
+          startValue = startInterp.timestamp
+          stopValue = stopInterp?.timestamp
+        }
 
-      // Convert numbers back to date strings
-      try {
-        return numbers.map((num) => {
-          return hasMonths
-            ? formatMonthString(num, bestFormat)
-            : formatDateString(num, bestFormat)
-        })
-      } catch (error) {
-        // Date formatting failed, fall through to regular processing
+        // Parse the step value
+        const stepNum = step ? parseFloat(step) : 1
+
+        // For day-based dates, step is in days, so use it directly
+        // For month-based dates, step is in months, so use it directly
+        // For timestamp fallback, convert step from days to milliseconds
+        const actualStep =
+          isYearMonth || isDayBased ? stepNum : stepNum * 86400000
+
+        // Use existing normalize and generateNumbers functions
+        const normalized = normalize(
+          startValue,
+          stopValue,
+          actualStep,
+          selectionCount,
+        )
+
+        if (!normalized) {
+          return []
+        }
+
+        const numbers = generateNumbers(
+          normalized.start,
+          normalized.step,
+          normalized.length,
+        )
+
+        // Convert numbers back to date strings using the appropriate formatter
+        try {
+          return numbers.map((num) => {
+            if (isYearMonth) {
+              // Use formatMonthString for year-month formats
+              return formatMonthString(num, bestFormat)
+            } else if (isDayBased) {
+              // Use formatDayString for day-based formats
+              return formatDayString(num, bestFormat)
+            }
+            // Fallback to formatDateString for timestamp-based (don't use it)
+            // return formatDateString(Math.floor(num / 86400000), bestFormat)
+            // Must be either isYearMonth or isDayBased, otherwise fall through to regular processing
+            throw new Error()
+          })
+        } catch (error) {
+          // Date formatting failed, fall through to regular processing
+        }
       }
     }
   } catch {
-    // Date parsing failed, fall through to regular processing
+    // Date parsing failed completely, fall through to regular processing
   }
 
-  // Regular (non-date) processing
+  // Regular (non-date) processing for numeric/letter/word sequences
   const startTypeInfos = getTypes(start)
   const stopTypeInfos = stop ? getTypes(stop) : []
 

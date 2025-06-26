@@ -4,7 +4,7 @@
     "": {
       "name": "range-transform",
       "dependencies": {
-        "convnum": "^0.2.4",
+        "convnum": "^0.2.5",
       },
       "devDependencies": {
         "@types/mocha": "^10.0.10",
@@ -223,7 +223,7 @@
 
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
-    "convnum": ["convnum@0.2.4", "", {}, "sha512-GKxTwaOuT8o2LXTwRrKoMfNUzNELkaaejBHvHUUsjhdZc0vtJUO/0U2b2GDohLeRZVvkbeBqi8apy0pVYWNUvg=="],
+    "convnum": ["convnum@0.2.5", "", {}, "sha512-2/pX3CII+YXg+L+kC66XYEayMM3hEk5XxfvnyRaeKSj+s9yiMTK71KRbHB860CkFSpYjtw6IVWUBAluNmNJ5jw=="],
 
     "core-util-is": ["core-util-is@1.0.3", "", {}, "sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ=="],
 

@@ -1,4 +1,4 @@
-import { findCommonDateFormat } from '@/utils/range/findCommonDateFormat'
+import { findCommonDateFormat } from '@/range/findCommonDateFormat'
 import {
   compareDateFormatOrder,
   parseDateString,

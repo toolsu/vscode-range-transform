@@ -1,4 +1,4 @@
-import { main } from '@/utils/range/main'
+import { main } from '@/range/main'
 import * as assert from 'assert'
 
 suite('range main function', () => {

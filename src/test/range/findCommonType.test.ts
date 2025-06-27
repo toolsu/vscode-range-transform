@@ -1,4 +1,4 @@
-import { findCommonType } from '@/utils/range/findCommonType'
+import { findCommonType } from '@/range/findCommonType'
 import * as assert from 'assert'
 import { compareNumTypeOrder, type NumType } from 'convnum'
 

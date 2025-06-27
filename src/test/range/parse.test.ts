@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 
-import { parse } from '@/utils/range/parse'
+import { parse } from '@/range/parse'
 
 suite('parse function', () => {
   test('should parse simple start value', () => {

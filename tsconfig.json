@@ -15,5 +15,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedParameters": true
   },
-  "exclude": ["usertypes/**/*"]
+  "exclude": ["usertypes/**/*", "temp/**/*", "scripts/**/*"]
 }

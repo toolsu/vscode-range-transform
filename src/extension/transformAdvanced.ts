@@ -196,7 +196,7 @@ export const advancedTransformText = async (
   try {
     // Create a temporary file
     const tempDir = os.tmpdir()
-    const tempFileName = `${TEMP_FILE.FILE_PREFIX}${Date.now()}-${Math.random().toString(36).substr(2, 9)}${TEMP_FILE.FILE_SUFFIX}`
+    const tempFileName = `${TEMP_FILE.FILE_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 11)}${TEMP_FILE.FILE_SUFFIX}`
     const tempFilePath = path.join(tempDir, tempFileName)
 
     // Write template content to temporary file

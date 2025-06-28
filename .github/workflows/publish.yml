@@ -1,4 +1,4 @@
-name: Publish Extension
+name: Publish
 
 on:
   push:
@@ -44,11 +44,8 @@ jobs:
       - name: Run tests
         run: bun run test
 
-      - name: Compile extension
-        run: bun run compile
-
-      - name: Package extension
-        run: bun run package
+      - name: Compile extension production
+        run: bun run compile:prod
 
       - name: Install publishing tools
         run: npm install -g vsce ovsx

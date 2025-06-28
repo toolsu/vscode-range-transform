@@ -29,7 +29,7 @@ function createMockContext(lastCleanup: number = 0): vscode.ExtensionContext {
 // Helper to create temp files for testing
 function createTestTempFile(age: number = 0): string {
   const tempDir = os.tmpdir()
-  const fileName = `${TEMP_FILE.FILE_PREFIX}test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}${TEMP_FILE.FILE_SUFFIX}`
+  const fileName = `${TEMP_FILE.FILE_PREFIX}test-${Date.now()}-${Math.random().toString(36).slice(2, 11)}${TEMP_FILE.FILE_SUFFIX}`
   const filePath = path.join(tempDir, fileName)
 
   fs.writeFileSync(filePath, 'test content')

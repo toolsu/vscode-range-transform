@@ -7,6 +7,8 @@
 
 When you are typing, there is a preview of the final output, which you can press <kbd>Enter</kbd> to confirm.
 
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/tomchen.range-transform?label=Visual%20Studio%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform) [![Open VSX Version](https://img.shields.io/open-vsx/v/tomchen/range-transform?label=Open%20VSX&color=%23a60ee5)](https://open-vsx.org/extension/tomchen/range-transform) [![Actions Status](https://github.com/tomchen/vscode-range-transform/workflows/Test/badge.svg)](https://github.com/tomchen/vscode-range-transform/actions) [![License](https://img.shields.io/github/license/tomchen/vscode-range-transform)](https://github.com/tomchen/vscode-range-transform/blob/main/LICENSE)
+
 ## "R&T: Insert Sequence from Range" Command
 
 `start:stop:step`

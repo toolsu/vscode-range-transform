@@ -1,4 +1,4 @@
-name: Test Extension
+name: Test
 
 on:
   push:
@@ -47,9 +47,6 @@ jobs:
 
       - name: Run tests
         run: bun run test
-
-      - name: Package extension
-        run: bun run package
 
   test-windows:
     runs-on: windows-latest

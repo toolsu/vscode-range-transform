@@ -9,16 +9,31 @@
   "engines": {
     "vscode": "^1.75.0"
   },
+  "extensionKind": [
+    [
+      "ui",
+      "workspace"
+    ]
+  ],
   "categories": [
-    "Programming Languages",
     "Formatters",
     "Other"
   ],
   "keywords": [
-    "markdown",
-    "link",
-    "paste",
-    "url"
+    "range",
+    "sequence",
+    "increment",
+    "transform",
+    "conversion",
+    "selection",
+    "number",
+    "numeral",
+    "chinese",
+    "french",
+    "date",
+    "letter",
+    "insert",
+    "multi-selection"
   ],
   "bugs": {
     "url": "https://github.com/tomchen/vscode-range-transform/issues"
@@ -47,12 +62,12 @@
   },
   "activationEvents": [],
   "scripts": {
-    "vscode:prepublish": "bun run package",
-    "compile": "bun run check-types && bun run lint && node esbuild.js",
+    "vscode:prepublish": "bun run compile:prod",
+    "compile": "bun run check-types && bun run lint && node esbuild.js && bun run gentypes",
+    "compile:prod": "bun run check-types && bun run lint && node esbuild.js --production && bun run gentypes",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "bun run check-types && bun run lint && node esbuild.js --production",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "bun run compile-tests && bun run compile && bun run lint",
@@ -63,7 +78,11 @@
     "format:check": "prettier --check src",
     "test": "vscode-test",
     "test:clean": "rimraf .vscode-test out && bun run test",
-    "vsix": "vsce package"
+    "vsix": "vsce package",
+    "genconvnumtypes": "bun scripts/genConvnumTypes.ts",
+    "gentransformtypes": "bun scripts/genTransformTypes.ts",
+    "gentypes": "bun run genconvnumtypes && bun run gentransformtypes",
+    "postinstall": "bun run gentypes"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -75,14 +94,14 @@
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.5",
-    "eslint": "^9.29.0",
+    "eslint": "^9.30.0",
     "module-alias": "^2.2.3",
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.6.1",
+    "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "convnum": "^0.2.5"
+    "convnum": "^0.2.6"
   }
 }

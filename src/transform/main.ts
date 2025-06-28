@@ -19,9 +19,9 @@ function processCommand(command: string): string {
   // Replace shorthand notation with function calls
   const replacements = [
     ['number', 'number(s)'],
+    ['letter', 'letter(n)'],
     ['upperletter', 'upperletter(n)'],
     ['lowerletter', 'lowerletter(n)'],
-    ['letter', 'letter(n)'],
     ['upper', 'upper(s)'],
     ['lower', 'lower(s)'],
   ]
@@ -76,34 +76,55 @@ export function transformSelections(
   selectionsWithIndex.forEach(({ selection }, index) => {
     const selectedText = editor.document.getText(selection)
 
+    // The variable comment below will be used to generate the `usertypes/transform.d.ts` file
+    // by the script `scripts/genTransformTypes.ts`, if you add a new variable with comment,
+    // you also need to modify `scripts/genTransformTypes.ts`
     const vars = {
       /**
-       * `s`: each selected text string (exact, untrimmed)
+       * `s`: The exact selected text string (untrimmed)
+       *
+       * Example: If you select "hello", `s` is `"hello"`
        */
       s: selectedText,
 
       /**
-       * `n`: each selected text string as number (converted by removing non-numeric characters)
+       * `n`: Selected text converted to number
+       *
+       * Extracts number by removing all non-numeric characters except digits and decimal point
+       *
+       * Example: If you select "abc123def", `n` is `123`
        */
       n: number(selectedText),
 
       /**
-       * `i0`: index (position / ordinal) of each selected string, 0-based
+       * `i0`: Selection index (0-based)
+       *
+       * The position of each selection, starting from 0
+       *
+       * Example: First selection's `i0` is `0`, second is `1`, etc.
        */
       i0: index,
 
       /**
-       * `i`: index (position / ordinal) of each selected string, 1-based
+       * `i`: Selection index (1-based)
+       *
+       * The position of each selection, starting from 1
+       *
+       * Example: First selection's `i` is `1`, second is `2`, etc.
        */
       i: index + 1,
 
       /**
-       * `l`: total count of selected strings / length of the array of selected strings
+       * `l`: Total count of selections
+       *
+       * If you have multiple selections, `l` is the total count of selections
        */
       l: selections.length,
 
       /**
-       * `ss`: array of selected strings
+       * `ss`: Array of all selected text strings
+       *
+       * Example: `["hello", "world", "test"]`
        */
       ss: allSelectedTexts,
 
@@ -118,42 +139,58 @@ export function transformSelections(
       lower,
 
       /**
-       * `li0`: line index relative to first selection, 0-based
+       * `li0`: Line index relative to first selection, first selection's line index is `0` (0-based)
        */
       li0: selection.start.line - firstLine,
 
       /**
-       * `li`: line index relative to first selection, 1-based
+       * `li`: Line index relative to first selection, first selection's line index is `1` (1-based)
        */
       li: selection.start.line - firstLine + 1,
 
       /**
-       * `fli0`: absolute line index in file, 0-based
+       * `fli0`: Absolute file line index, first line's index is `0` (0-based)
        */
       fli0: selection.start.line,
 
       /**
-       * `fli`: absolute line index in file, 1-based
+       * `fli`: Absolute file line index, first line's index is `1` (1-based)
        */
       fli: selection.start.line + 1,
 
       /**
-       * `wl`: the whole line as string
+       * `wl`: Whole line text
+       *
+       * The entire line content of the point where the selection starts
+       *
+       * Example: If you select "hello" and the line is "hello world!", `wl` is `"hello world!"`
        */
       wl: editor.document.lineAt(selection.start.line).text,
 
       /**
-       * `len`: length of selected string (UTF-16 code units)
+       * `len`: String length (UTF-16 code units)
+       *
+       * Represents the number of UTF-16 code units in the string.
+       * Most common characters count as 1, but some special characters and emojis may count as more.
+       *
+       * Example:
+       * - If you select "hello", `len` is `5`
+       * - If you select "你好", `len` is `2`
+       *
+       * @remarks Some special characters have a `len` greater than their visual length:
+       * "😀" (`2`), "👨‍👩‍👧‍👦" (`11`), "नमस्ते" (`6`), "สวัสดี" (`6`).
+       * If you're working with such characters, consider using `[...s].length`,
+       * {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter | Intl.Segmenter},
+       * or other specific methods.
        */
       len: selectedText.length,
 
       /**
-       * `cc`: character count (better than len for emoji)
-       */
-      cc: [...selectedText].length,
-
-      /**
-       * `wc`: word count (simple whitespace-based counting)
+       * `wc`: Word count
+       *
+       * Number of words in the selection (whitespace-separated)
+       *
+       * Example: If you select "hello world", `wc` is `2`
        */
       wc: selectedText
         .trim()
@@ -161,18 +198,15 @@ export function transformSelections(
         .filter((word) => word.length > 0).length,
 
       /**
-       * `selection`: vscode.Selection object representing current selection
+       * `selection`: {@link https://code.visualstudio.com/api/references/vscode-api#Selection | `vscode.Selection`} object representing current selection
        */
       selection,
 
       /**
-       * `selections`: array of all vscode.Selection objects
+       * `selections`: array of all {@link https://code.visualstudio.com/api/references/vscode-api#Selection | `vscode.Selection`} objects
        */
       selections,
 
-      /**
-       * `convnum`: convnum library
-       */
       convnum,
     }
 

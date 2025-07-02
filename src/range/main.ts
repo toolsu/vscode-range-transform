@@ -8,10 +8,11 @@ import {
   parseDateString,
   formatDayString,
   formatMonthString,
+  findCommonType,
+  findCommonDateFormat,
   type ParseDateResult,
+  NumType,
 } from 'convnum'
-import { findCommonType } from './findCommonType'
-import { findCommonDateFormat } from './findCommonDateFormat'
 
 /**
  * Main function that processes a range command and generates the corresponding sequence.
@@ -149,8 +150,8 @@ export const main = (command: string, selectionCount: number): string[] => {
   const stopTypeInfos = stop ? getTypes(stop) : []
 
   // Extract type strings for findCommonType
-  const startTypes = startTypeInfos.map((info) => info.type)
-  const stopTypes = stopTypeInfos.map((info) => info.type)
+  const startTypes = startTypeInfos.map((info) => info.type) as NumType[]
+  const stopTypes = stopTypeInfos.map((info) => info.type) as NumType[]
 
   // Find a common type between start and stop values
   const commonType = findCommonType(startTypes, stopTypes)

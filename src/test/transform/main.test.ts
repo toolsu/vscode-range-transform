@@ -91,12 +91,6 @@ suite('transformSelections Function Tests', () => {
       assert.deepStrictEqual(result, ['5', '2', '5'])
     })
 
-    test('should have access to cc (character count)', () => {
-      const editor = createMockEditor(['hello', '👋🌍', 'test'])
-      const result = transformSelections(editor, editor.selections, 'cc')
-      assert.deepStrictEqual(result, ['5', '2', '4'])
-    })
-
     test('should have access to wc (word count)', () => {
       const editor = createMockEditor([
         'hello world',

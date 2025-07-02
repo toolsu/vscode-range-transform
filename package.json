@@ -102,6 +102,6 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "convnum": "^0.2.6"
+    "convnum": "^0.2.7"
   }
 }

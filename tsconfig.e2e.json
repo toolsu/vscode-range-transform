@@ -1,0 +1,15 @@
+{
+  // Compiles the extension plus the end-to-end suite to `out/`, which is what
+  // `@vscode/test-cli` loads inside the VS Code extension host.
+  //
+  // Unit tests (`src/test`) are not included: they run under `bun test` directly from
+  // TypeScript and never need the extension host.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "out",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/usertypes/**", "src/test/**"]
+}

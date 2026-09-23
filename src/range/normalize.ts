@@ -1,100 +1,105 @@
-import { FALLBACK_SEQUENCE_LENGTH } from '@/const/const'
+import { DEFAULT_SEQUENCE_LENGTH } from '../const/const'
 
 /**
- * Normalizes the range parameters to ensure consistent behavior across different input scenarios.
- * This function handles edge cases and ensures the step direction aligns with the relationship between start and stop.
+ * The largest sequence a range may ask for on its own.
  *
- * @param start - The starting number of the sequence. If undefined or not finite, it defaults to 1.
- * @param stop - The ending number of the sequence. If not finite, it is treated as undefined.
- * @param step - The step value (i.e., the difference between each element in the sequence).
- *               If undefined or not finite, it defaults to 1.
- * @param selectionCount - The length of the current text selection (used for fallback calculations).
- * @returns An object with normalized `start`, `step`, and `length` values, or `null` if normalization fails.
+ * Every element of a sequence is materialised several times over — as a number, then as
+ * a string, then joined into one blob and spread character by character by the preview —
+ * and all of it runs synchronously inside the preview debounce, i.e. while the user is
+ * still typing and before Enter is ever pressed. Unbounded, `1:10000000` costs ~800 ms
+ * and 1.2 GB per keystroke, and `1:100000000` aborts the process with "JavaScript heap
+ * out of memory", which no `try` can catch and which kills every extension in the window.
  *
- * Normalization logic:
- * 1. If `start` is undefined or not finite (!isFinite(), i.e. NaN, Infinity, -Infinity), set `start = 1`.
- * 2. If `step` is undefined or not finite, set `step = 1`.
- * 3. If `stop` is not finite, set `stop = undefined`.
- * 4. If `stop` is defined:
- *    - Adjust the sign of `step` to match the direction from `start` to `stop` (if start equals stop, then step is 0).
- *    - If `step` is 0:
- *       - set `length` to `selectionCount` if `selectionCount > 1`, otherwise set `length` to FALLBACK_SEQUENCE_LENGTH.
- *    - If `step` is not 0:
- *       - Calculate `stepCount` as: `Math.floor((stop - start) / step)`.
- *       - Set `length = Math.max(1, stepCount)`.
- *       - If `length` exceeds `selectionCount` and `selectionCount > 1`, use `selectionCount` instead.
- * 5. If `stop` is undefined:
- *    - Set `length = selectionCount > 1 ? selectionCount : FALLBACK_SEQUENCE_LENGTH`.
- *    - Use the provided `start` and `step` values.
+ * 20000 is past anything a real range needs: a daily date sequence spanning half a
+ * century is ~18000 elements, and VS Code's own `editor.multiCursorLimit` defaults to
+ * 10000. At that size the whole pipeline stays around 50 ms and a few megabytes even on
+ * the slowest path (dates), so a keystroke still feels instant.
  */
-export const normalize = (
+export const MAX_SEQUENCE_LENGTH = 20000
+
+/** A range reduced to the only three numbers a generator needs. */
+export interface NormalizedRange {
+  readonly start: number
+  readonly step: number
+  readonly length: number
+}
+
+/**
+ * Turns a loosely specified range into a start, a step and an element count.
+ *
+ * Everything the user left out or got wrong is repaired rather than rejected, because
+ * this runs on every keystroke of a live preview: a half-typed range should show a
+ * plausible sequence, not an error. Specifically:
+ *
+ * - a missing or non-finite `start` becomes `1`, and a missing or non-finite `step`
+ *   becomes `1`; a non-finite `stop` is treated as no `stop` at all
+ * - with a `stop`, the sign of `step` is forced to point from `start` towards `stop`, so
+ *   `10:1:2` counts down instead of producing nothing
+ * - `start === stop` collapses `step` to `0`, i.e. a constant sequence
+ *
+ * The element count is where `selectionCount` comes in. With more than one selection the
+ * count is what the user is really asking for, so it caps a range that would otherwise
+ * overshoot (`1:100` across 5 cursors gives 1..5) and it wins outright when the step is
+ * `0` or there is no `stop`. A single cursor carries no such information, so
+ * `defaultLength` is used instead.
+ *
+ * Returns `null` when the range asks for more than `MAX_SEQUENCE_LENGTH` elements, which
+ * callers surface as "this is not a usable range".
+ *
+ * @param selectionCount - How many selections the sequence has to fill.
+ * @param defaultLength - Length to use when a single cursor gives no better hint.
+ */
+export function normalize(
   start: number | undefined,
   stop: number | undefined,
   step: number | undefined,
   selectionCount: number,
-): {
-  start: number
-  step: number
-  length: number
-} | null => {
-  // Convert start: if undefined or !isFinite(), then converted to 1
-  let normalizedStart = start
-  if (normalizedStart === undefined || !isFinite(normalizedStart)) {
-    normalizedStart = 1
-  }
+  defaultLength: number = DEFAULT_SEQUENCE_LENGTH,
+): NormalizedRange | null {
+  const normalizedStart = start === undefined || !isFinite(start) ? 1 : start
+  const normalizedStop =
+    stop === undefined || !isFinite(stop) ? undefined : stop
+  let normalizedStep = step === undefined || !isFinite(step) ? 1 : step
 
-  // Convert step: if undefined or !isFinite(), then converted to 1
-  let normalizedStep = step
-  if (normalizedStep === undefined || !isFinite(normalizedStep)) {
-    normalizedStep = 1
-  }
-
-  // Convert stop: if !isFinite(), then converted to undefined
-  let normalizedStop = stop
-  if (normalizedStop !== undefined && !isFinite(normalizedStop)) {
-    normalizedStop = undefined
-  }
-
+  // Used whenever the range itself implies no count: no stop to walk towards, or a
+  // zero step that never gets there.
+  const fallbackLength = selectionCount > 1 ? selectionCount : defaultLength
   let length: number
 
-  if (normalizedStop !== undefined) {
-    // stop is not undefined
-    // step should be converted to using the same sign as stop - start
+  if (normalizedStop === undefined) {
+    length = fallbackLength
+  } else {
     const direction = normalizedStop - normalizedStart
-    if (direction !== 0) {
-      normalizedStep = Math.abs(normalizedStep) * Math.sign(direction)
-    } else {
-      // If start equals stop, step should be 0
-      normalizedStep = 0
-    }
+    normalizedStep =
+      direction === 0 ? 0 : Math.abs(normalizedStep) * Math.sign(direction)
 
-    // length is calculated from start, stop, and step (Math.floor((stop - start) / step))
     if (normalizedStep === 0) {
-      // Zero step means constant sequence, use selection length, if selectionCount is 1, then use FALLBACK_SEQUENCE_LENGTH
-      length = selectionCount > 1 ? selectionCount : FALLBACK_SEQUENCE_LENGTH
+      length = fallbackLength
     } else {
       const stepCount =
         Math.floor((normalizedStop - normalizedStart) / normalizedStep) + 1
-      length = Math.max(1, stepCount) // At least 1 element
-      // if length is greater than selectionCount and selectionCount is greater than 1, then length is selectionCount
+      // At least one element: a step that overshoots the stop still emits the start.
+      length = Math.max(1, stepCount)
       if (length > selectionCount && selectionCount > 1) {
         length = selectionCount
       }
     }
-  } else {
-    // stop is undefined
-    // use selection length, if selectionCount is 1, then use FALLBACK_SEQUENCE_LENGTH
-    length = selectionCount > 1 ? selectionCount : FALLBACK_SEQUENCE_LENGTH
   }
 
-  // Fix -0 to 0 for consistency
-  if (Object.is(normalizedStep, -0)) {
-    normalizedStep = 0
+  // Refused rather than truncated: a silently shortened sequence looks right in the
+  // preview and then inserts 20000 lines nobody asked for, while `null` reaches the
+  // input box as a validation error and keeps Enter blocked until the range is narrowed.
+  // A length that is exactly the selection count is exempt — those elements are one per
+  // cursor the user placed themselves, and each is consumed rather than accumulated, so
+  // refusing to number 30000 cursors would be a bug rather than a safeguard.
+  if (length > MAX_SEQUENCE_LENGTH && length > selectionCount) {
+    return null
   }
 
   return {
     start: normalizedStart,
-    step: normalizedStep,
+    // `Math.abs(0) * Math.sign(-1)` is -0, which would print as "-0" downstream.
+    step: Object.is(normalizedStep, -0) ? 0 : normalizedStep,
     length,
   }
 }

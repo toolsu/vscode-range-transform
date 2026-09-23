@@ -1,53 +1,49 @@
 import * as vscode from 'vscode'
-import { STYLES } from '@/const/visual'
-import { rangeGenerate } from './extension/range'
-import { transformText } from './extension/transform'
-import { advancedTransformText } from './extension/transformAdvanced'
-import { cleanupOrphanedTempFiles } from './extension/cleanupOrphanedTempFiles'
+import { insertSequenceCommand } from './commands/insertSequence'
+import { transformCommand } from './commands/transform'
+import {
+  applyScratchCommand,
+  cancelScratchCommand,
+  disposeAdvancedSession,
+  transformAdvancedCommand,
+} from './commands/transformAdvanced'
+import { createPreviewDecorationType } from './editor/preview'
+import { sweepScratchDirectory } from './scratchStore'
 
-// Decoration type for preview
-let previewDecorationType: vscode.TextEditorDecorationType
+let previewDecorationType: vscode.TextEditorDecorationType | undefined
 
-export function activate(context: vscode.ExtensionContext) {
-  // Create decoration type that styles both selection and preview
-  previewDecorationType = vscode.window.createTextEditorDecorationType({
-    ...STYLES.selection,
-    after: {
-      ...STYLES.preview,
-    },
-  })
+export function activate(context: vscode.ExtensionContext): void {
+  previewDecorationType = createPreviewDecorationType()
+  const decorationType = previewDecorationType
 
-  // Clean up orphaned temp files on extension activation (max once per day)
-  cleanupOrphanedTempFiles(context)
-
-  // Register the range transform command
-  const rangeDisposable = vscode.commands.registerCommand(
-    'range-transform.range',
-    () => rangeGenerate(previewDecorationType),
-  )
-
-  // Register the transform command
-  const transformDisposable = vscode.commands.registerCommand(
-    'range-transform.transform',
-    () => transformText(previewDecorationType),
-  )
-
-  // Register the advanced transform command
-  const advancedTransformDisposable = vscode.commands.registerCommand(
-    'range-transform.transform-advanced',
-    () => advancedTransformText(previewDecorationType, context),
-  )
+  // Remove scratch files left behind by a crash. Deliberately not awaited: it is a
+  // directory listing over a handful of small files and must not delay activation.
+  void sweepScratchDirectory(context)
 
   context.subscriptions.push(
-    rangeDisposable,
-    transformDisposable,
-    advancedTransformDisposable,
-    previewDecorationType,
+    decorationType,
+    vscode.commands.registerCommand('range-transform.insertSequence', () =>
+      insertSequenceCommand(decorationType, context.workspaceState),
+    ),
+    vscode.commands.registerCommand('range-transform.transform', () =>
+      transformCommand(decorationType, context.workspaceState),
+    ),
+    vscode.commands.registerCommand('range-transform.transformAdvanced', () =>
+      transformAdvancedCommand(context, decorationType),
+    ),
+    vscode.commands.registerCommand(
+      'range-transform.internal.applyScratch',
+      () => applyScratchCommand(),
+    ),
+    vscode.commands.registerCommand(
+      'range-transform.internal.cancelScratch',
+      () => cancelScratchCommand(),
+    ),
   )
 }
 
-export function deactivate() {
-  if (previewDecorationType) {
-    previewDecorationType.dispose()
-  }
+export function deactivate(): void {
+  disposeAdvancedSession()
+  previewDecorationType?.dispose()
+  previewDecorationType = undefined
 }

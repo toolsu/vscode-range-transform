@@ -1,201 +1,227 @@
-import * as assert from 'assert'
+import { describe, expect, it } from 'bun:test'
+import { argKindOf } from '../../transform/argKind'
 import {
-  number,
   letter,
-  upperletter,
-  lowerletter,
-  upper,
   lower,
-} from '@/transform/helpers'
+  lowerletter,
+  number,
+  upper,
+  upperletter,
+} from '../../transform/helpers'
 
-suite('Transform Helpers Tests', () => {
-  suite('number() function', () => {
-    test('should extract numbers from simple strings', () => {
-      assert.strictEqual(number('123'), 123)
-      assert.strictEqual(number('456.789'), 456.789)
-      assert.strictEqual(number('-42'), -42)
-      assert.strictEqual(number('-3.14'), -3.14)
-    })
-
-    test('should extract numbers from strings with non-numeric characters', () => {
-      assert.strictEqual(number('abc123def'), 123)
-      assert.strictEqual(number('price: $19.99'), 19.99)
-      assert.strictEqual(number('temp: -5°C'), -5)
-      assert.strictEqual(number('weight: 2.5kg'), 2.5)
-    })
-
-    test('should handle multiple numbers by taking first', () => {
-      assert.ok(Number.isNaN(number('12.34.56')))
-      assert.ok(Number.isNaN(number('1-2-3')))
-      assert.strictEqual(number('10 + 20'), 1020)
-    })
-
-    test('should return NaN for non-numeric strings', () => {
-      assert.ok(Number.isNaN(number('hello')))
-      assert.ok(Number.isNaN(number('abc')))
-      assert.ok(Number.isNaN(number('')))
-      assert.ok(Number.isNaN(number('   ')))
-    })
-
-    test('should handle edge cases', () => {
-      assert.strictEqual(number('0'), 0)
-      assert.strictEqual(number('-0'), -0)
-      assert.strictEqual(number('000123'), 123)
-      assert.strictEqual(number('123.000'), 123)
-    })
-
-    test('should handle decimal edge cases', () => {
-      assert.strictEqual(number('.5'), 0.5)
-      assert.strictEqual(number('-.25'), -0.25)
-      assert.strictEqual(number('123.'), 123)
-    })
+describe('number', () => {
+  it('extracts numbers from simple strings', () => {
+    expect(number('123')).toBe(123)
+    expect(number('456.789')).toBe(456.789)
+    expect(number('-42')).toBe(-42)
+    expect(number('-3.14')).toBe(-3.14)
   })
 
-  suite('letter() function', () => {
-    test('should convert numbers to uppercase letters', () => {
-      assert.strictEqual(letter(1), 'A')
-      assert.strictEqual(letter(2), 'B')
-      assert.strictEqual(letter(3), 'C')
-      assert.strictEqual(letter(26), 'Z')
-    })
-
-    test('should return empty string for out-of-range numbers', () => {
-      assert.strictEqual(letter(0), '')
-      assert.strictEqual(letter(-1), '')
-      assert.strictEqual(letter(27), '')
-      assert.strictEqual(letter(100), '')
-    })
-
-    test('should handle edge cases', () => {
-      assert.strictEqual(letter(1.5), 'A') // Non-integer
-      assert.strictEqual(letter(NaN), '\x00')
-      assert.strictEqual(letter(Infinity), '')
-      assert.strictEqual(letter(-Infinity), '')
-    })
+  it('extracts numbers from strings with non-numeric characters', () => {
+    expect(number('abc123def')).toBe(123)
+    expect(number('price: $19.99')).toBe(19.99)
+    expect(number('temp: -5°C')).toBe(-5)
+    expect(number('weight: 2.5kg')).toBe(2.5)
   })
 
-  suite('upperletter() function', () => {
-    test('should be an alias for letter()', () => {
-      assert.strictEqual(upperletter(1), letter(1))
-      assert.strictEqual(upperletter(5), letter(5))
-      assert.strictEqual(upperletter(26), letter(26))
-      assert.strictEqual(upperletter(0), letter(0))
-      assert.strictEqual(upperletter(27), letter(27))
-    })
-
-    test('should convert numbers to uppercase letters', () => {
-      assert.strictEqual(upperletter(1), 'A')
-      assert.strictEqual(upperletter(8), 'H')
-      assert.strictEqual(upperletter(26), 'Z')
-    })
+  it('gives NaN when the leftovers are not a single number', () => {
+    expect(number('12.34.56')).toBeNaN()
+    expect(number('1-2-3')).toBeNaN()
+    expect(number('10 + 20')).toBe(1020)
   })
 
-  suite('lowerletter() function', () => {
-    test('should convert numbers to lowercase letters', () => {
-      assert.strictEqual(lowerletter(1), 'a')
-      assert.strictEqual(lowerletter(2), 'b')
-      assert.strictEqual(lowerletter(3), 'c')
-      assert.strictEqual(lowerletter(26), 'z')
-    })
-
-    test('should return empty string for out-of-range numbers', () => {
-      assert.strictEqual(lowerletter(0), '')
-      assert.strictEqual(lowerletter(-1), '')
-      assert.strictEqual(lowerletter(27), '')
-      assert.strictEqual(lowerletter(100), '')
-    })
-
-    test('should handle edge cases', () => {
-      assert.strictEqual(lowerletter(1.5), 'a') // Non-integer
-      assert.strictEqual(lowerletter(NaN), '\x00')
-      assert.strictEqual(lowerletter(Infinity), '')
-      assert.strictEqual(lowerletter(-Infinity), '')
-    })
+  it('returns NaN for non-numeric strings', () => {
+    expect(number('hello')).toBeNaN()
+    expect(number('abc')).toBeNaN()
+    expect(number('')).toBeNaN()
+    expect(number('   ')).toBeNaN()
   })
 
-  suite('upper() function', () => {
-    test('should convert strings to uppercase', () => {
-      assert.strictEqual(upper('hello'), 'HELLO')
-      assert.strictEqual(upper('world'), 'WORLD')
-      assert.strictEqual(upper('Hello World'), 'HELLO WORLD')
-    })
-
-    test('should handle already uppercase strings', () => {
-      assert.strictEqual(upper('HELLO'), 'HELLO')
-      assert.strictEqual(upper('WORLD'), 'WORLD')
-    })
-
-    test('should handle mixed case strings', () => {
-      assert.strictEqual(upper('HeLLo'), 'HELLO')
-      assert.strictEqual(upper('WoRlD'), 'WORLD')
-    })
-
-    test('should handle edge cases', () => {
-      assert.strictEqual(upper(''), '')
-      assert.strictEqual(upper('   '), '   ')
-      assert.strictEqual(upper('123'), '123')
-      assert.strictEqual(upper('!@#$%'), '!@#$%')
-    })
-
-    test('should handle unicode characters', () => {
-      assert.strictEqual(upper('café'), 'CAFÉ')
-      assert.strictEqual(upper('naïve'), 'NAÏVE')
-      assert.strictEqual(upper('résumé'), 'RÉSUMÉ')
-    })
+  it('handles zero and redundant digits', () => {
+    expect(number('0')).toBe(0)
+    expect(number('-0')).toBe(-0)
+    expect(number('000123')).toBe(123)
+    expect(number('123.000')).toBe(123)
   })
 
-  suite('lower() function', () => {
-    test('should convert strings to lowercase', () => {
-      assert.strictEqual(lower('HELLO'), 'hello')
-      assert.strictEqual(lower('WORLD'), 'world')
-      assert.strictEqual(lower('HELLO WORLD'), 'hello world')
-    })
-
-    test('should handle already lowercase strings', () => {
-      assert.strictEqual(lower('hello'), 'hello')
-      assert.strictEqual(lower('world'), 'world')
-    })
-
-    test('should handle mixed case strings', () => {
-      assert.strictEqual(lower('HeLLo'), 'hello')
-      assert.strictEqual(lower('WoRlD'), 'world')
-    })
-
-    test('should handle edge cases', () => {
-      assert.strictEqual(lower(''), '')
-      assert.strictEqual(lower('   '), '   ')
-      assert.strictEqual(lower('123'), '123')
-      assert.strictEqual(lower('!@#$%'), '!@#$%')
-    })
-
-    test('should handle unicode characters', () => {
-      assert.strictEqual(lower('CAFÉ'), 'café')
-      assert.strictEqual(lower('NAÏVE'), 'naïve')
-      assert.strictEqual(lower('RÉSUMÉ'), 'résumé')
-    })
+  it('handles decimal edge cases', () => {
+    expect(number('.5')).toBe(0.5)
+    expect(number('-.25')).toBe(-0.25)
+    expect(number('123.')).toBe(123)
   })
 
-  suite('Integration tests', () => {
-    test('should work together in common scenarios', () => {
-      // Convert number from string, then to letter
-      const numberFromString = number('item5')
-      const letterResult = letter(numberFromString)
-      assert.strictEqual(letterResult, 'E')
+  it('coerces a non-string argument instead of throwing', () => {
+    expect(number(42 as unknown as string)).toBe(42)
+    expect(number(null as unknown as string)).toBeNaN()
+    expect(number(undefined as unknown as string)).toBeNaN()
+  })
+})
 
-      // Convert string to uppercase
-      const upperResult = upper('hello world')
-      assert.strictEqual(upperResult, 'HELLO WORLD')
+describe('letter', () => {
+  it('converts numbers to uppercase letters', () => {
+    expect(letter(1)).toBe('A')
+    expect(letter(2)).toBe('B')
+    expect(letter(3)).toBe('C')
+    expect(letter(26)).toBe('Z')
+  })
 
-      // Chain operations
-      const chainResult = upper(letter(number('3')))
-      assert.strictEqual(chainResult, 'C')
-    })
+  it('returns an empty string for out-of-range numbers', () => {
+    expect(letter(0)).toBe('')
+    expect(letter(-1)).toBe('')
+    expect(letter(27)).toBe('')
+    expect(letter(100)).toBe('')
+  })
 
-    test('should handle null-like inputs gracefully', () => {
-      assert.ok(Number.isNaN(number('')))
-      assert.strictEqual(letter(0), '')
-      assert.strictEqual(upper(''), '')
-      assert.strictEqual(lower(''), '')
-    })
+  it('truncates non-integers and rejects non-finite input', () => {
+    expect(letter(1.5)).toBe('A')
+    expect(letter(NaN)).toBe('')
+    expect(letter(Infinity)).toBe('')
+    expect(letter(-Infinity)).toBe('')
+  })
+
+  it('coerces a non-number argument instead of throwing', () => {
+    expect(letter('3' as unknown as number)).toBe('C')
+    expect(letter('abc' as unknown as number)).toBe('')
+    expect(letter(undefined as unknown as number)).toBe('')
+  })
+})
+
+describe('upperletter', () => {
+  it('is an alias for letter', () => {
+    expect(upperletter(1)).toBe(letter(1))
+    expect(upperletter(5)).toBe(letter(5))
+    expect(upperletter(26)).toBe(letter(26))
+    expect(upperletter(0)).toBe(letter(0))
+    expect(upperletter(27)).toBe(letter(27))
+  })
+
+  it('converts numbers to uppercase letters', () => {
+    expect(upperletter(1)).toBe('A')
+    expect(upperletter(8)).toBe('H')
+    expect(upperletter(26)).toBe('Z')
+  })
+})
+
+describe('lowerletter', () => {
+  it('converts numbers to lowercase letters', () => {
+    expect(lowerletter(1)).toBe('a')
+    expect(lowerletter(2)).toBe('b')
+    expect(lowerletter(3)).toBe('c')
+    expect(lowerletter(26)).toBe('z')
+  })
+
+  it('returns an empty string for out-of-range numbers', () => {
+    expect(lowerletter(0)).toBe('')
+    expect(lowerletter(-1)).toBe('')
+    expect(lowerletter(27)).toBe('')
+    expect(lowerletter(100)).toBe('')
+  })
+
+  it('truncates non-integers and rejects non-finite input', () => {
+    expect(lowerletter(1.5)).toBe('a')
+    expect(lowerletter(NaN)).toBe('')
+    expect(lowerletter(Infinity)).toBe('')
+    expect(lowerletter(-Infinity)).toBe('')
+  })
+})
+
+describe('upper', () => {
+  it('converts strings to uppercase', () => {
+    expect(upper('hello')).toBe('HELLO')
+    expect(upper('world')).toBe('WORLD')
+    expect(upper('Hello World')).toBe('HELLO WORLD')
+  })
+
+  it('leaves already uppercase strings alone', () => {
+    expect(upper('HELLO')).toBe('HELLO')
+    expect(upper('WORLD')).toBe('WORLD')
+  })
+
+  it('handles mixed case strings', () => {
+    expect(upper('HeLLo')).toBe('HELLO')
+    expect(upper('WoRlD')).toBe('WORLD')
+  })
+
+  it('handles empty, blank and non-alphabetic input', () => {
+    expect(upper('')).toBe('')
+    expect(upper('   ')).toBe('   ')
+    expect(upper('123')).toBe('123')
+    expect(upper('!@#$%')).toBe('!@#$%')
+  })
+
+  it('handles unicode characters', () => {
+    expect(upper('café')).toBe('CAFÉ')
+    expect(upper('naïve')).toBe('NAÏVE')
+    expect(upper('résumé')).toBe('RÉSUMÉ')
+  })
+
+  it('coerces a non-string argument instead of throwing', () => {
+    expect(upper(12 as unknown as string)).toBe('12')
+    expect(upper(null as unknown as string)).toBe('NULL')
+  })
+})
+
+describe('lower', () => {
+  it('converts strings to lowercase', () => {
+    expect(lower('HELLO')).toBe('hello')
+    expect(lower('WORLD')).toBe('world')
+    expect(lower('HELLO WORLD')).toBe('hello world')
+  })
+
+  it('leaves already lowercase strings alone', () => {
+    expect(lower('hello')).toBe('hello')
+    expect(lower('world')).toBe('world')
+  })
+
+  it('handles mixed case strings', () => {
+    expect(lower('HeLLo')).toBe('hello')
+    expect(lower('WoRlD')).toBe('world')
+  })
+
+  it('handles empty, blank and non-alphabetic input', () => {
+    expect(lower('')).toBe('')
+    expect(lower('   ')).toBe('   ')
+    expect(lower('123')).toBe('123')
+    expect(lower('!@#$%')).toBe('!@#$%')
+  })
+
+  it('handles unicode characters', () => {
+    expect(lower('CAFÉ')).toBe('café')
+    expect(lower('NAÏVE')).toBe('naïve')
+    expect(lower('RÉSUMÉ')).toBe('résumé')
+  })
+
+  it('coerces a non-string argument instead of throwing', () => {
+    expect(lower(12 as unknown as string)).toBe('12')
+    expect(lower(true as unknown as string)).toBe('true')
+  })
+})
+
+describe('arg kind tags', () => {
+  it('tags the number-taking helpers with n', () => {
+    expect(argKindOf(letter)).toBe('n')
+    expect(argKindOf(upperletter)).toBe('n')
+    expect(argKindOf(lowerletter)).toBe('n')
+  })
+
+  it('tags the string-taking helpers with s', () => {
+    expect(argKindOf(number)).toBe('s')
+    expect(argKindOf(upper)).toBe('s')
+    expect(argKindOf(lower)).toBe('s')
+  })
+})
+
+describe('helpers used together', () => {
+  it('composes in the common scenarios', () => {
+    expect(letter(number('item5'))).toBe('E')
+    expect(upper('hello world')).toBe('HELLO WORLD')
+    expect(upper(letter(number('3')))).toBe('C')
+  })
+
+  it('degrades to an empty result rather than throwing', () => {
+    expect(number('')).toBeNaN()
+    expect(letter(0)).toBe('')
+    expect(upper('')).toBe('')
+    expect(lower('')).toBe('')
   })
 })

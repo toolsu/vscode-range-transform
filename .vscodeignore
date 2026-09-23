@@ -1,20 +1,31 @@
+# Everything the extension needs at runtime is bundled into dist/extension.js by
+# esbuild, including the .d.ts text the Advanced command writes to its scratch
+# directory. Nothing under src/ or node_modules/ ships.
+
+.github/**
 .vscode/**
 .vscode-test/**
-out/**
+docs/**
+site/**
 node_modules/**
+out/**
 scripts/**
 src/**
-.github/**
+
+.editorconfig
+.gitattributes
 .gitignore
-.yarnrc
+.prettierrc.mjs
 esbuild.js
-**/tsconfig.json
-**/eslint.config.mjs
-**/*.map
-**/*.ts
+eslint.config.mjs
+icon.svg
+
 **/.vscode-test.*
 **/*.lock
-**/pnpm-lock.yaml
-**/yarn.lock
+**/*.map
+**/*.ts
+**/*.vsix
 **/package-lock.json
-icon.svg
+**/pnpm-lock.yaml
+**/tsconfig*.json
+**/yarn.lock

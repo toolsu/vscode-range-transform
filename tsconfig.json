@@ -1,19 +1,26 @@
 {
   "compilerOptions": {
     "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "sourceMap": true,
-    "rootDir": "src",
     "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*", "out/*"],
-      "@ROOT/*": ["*"]
-    },
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    // Listed explicitly so a transitively-hoisted @types package cannot leak in.
+    "types": ["node", "bun", "mocha"],
+    "sourceMap": true,
+    "rootDir": "."
   },
-  "exclude": ["usertypes/**/*", "temp/**/*", "scripts/**/*"]
+  "include": ["src/**/*", "scripts/**/*"],
+  // `src/usertypes` declares the ambient globals (`s`, `n`, `i`, ...) that exist only
+  // inside a user's scratch file. Including them here would pollute the extension's own
+  // global scope, so they are type-checked by `tsconfig.globals.json` instead.
+  "exclude": ["src/usertypes/**"]
 }

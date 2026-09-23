@@ -1,85 +1,62 @@
+import { registerArgKind } from './argKind'
+
 /**
- * Helper functions for transform operations
- * These functions will be used to generate the `usertypes/transform.d.ts` file
- * by the script `scripts/genTransformTypes.ts`, if you add a new function with comment,
- * you also need to modify `scripts/genTransformTypes.ts`
+ * The helpers a user expression can call, tagged with the variable the auto-call rule
+ * should feed them when they are written bare (`upper` instead of `upper(s)`).
+ *
+ * Every one of them coerces its argument. A user expression is free to hand these
+ * anything — `upper(n)`, `letter(s)` — and the auto-call rule itself passes `s` to any
+ * function it cannot classify, so throwing a `TypeError` on a wrong-typed argument would
+ * turn a harmless typo into a failed selection. The user-facing documentation for these
+ * lives in `src/usertypes/rt.d.ts`, which is what hover shows.
  */
 
 /**
- * Extract number from string by removing all non-numeric characters
- * @param text Input text
- * @returns Extracted number or null if no number found
- * @example number("abc123") // returns 123
- * @remarks
- * In range-transform extension, you can also use shortcut `number` instead of `number(s)`
+ * Reads the number out of arbitrary text: `'price: $19.99'` gives `19.99`.
+ *
+ * Strips every character that cannot appear in a JS number literal instead of matching
+ * the first number, so `'temp: -5°C'` keeps its sign. Ambiguous leftovers such as
+ * `'1-2-3'` are `NaN` rather than a guess.
  */
-export const number = (text: string): number => {
-  const num = text.replace(/[^0-9.-]/g, '')
-  return num ? Number(num) : NaN
-}
+export const number = registerArgKind((text: string): number => {
+  const digits = String(text).replace(/[^0-9.-]/g, '')
+  return digits ? Number(digits) : NaN
+}, 's')
 
 /**
- * Convert number to uppercase letter A-Z (1=A, 2=B, etc.)
- * @param num Number between 1-26
- * @returns Uppercase letter or empty string if out of range
- * @example letter(1) // returns "A"
- * @remarks
- * In range-transform extension, you can also use shortcut `letter` instead of `letter(n)`
+ * `1` -> `'A'` … `26` -> `'Z'`; anything else is `''`.
+ *
+ * Out-of-range input gives an empty string rather than an error so that a transform over
+ * a long selection list degrades gracefully instead of failing wholesale at item 27.
  */
-export const letter = (num: number): string => {
-  if (num < 1 || num > 26) {
+export const letter = registerArgKind((num: number): string => {
+  const value = Number(num)
+  if (!Number.isFinite(value) || value < 1 || value > 26) {
     return ''
   }
-  return String.fromCharCode(64 + num)
-}
+  return String.fromCharCode(64 + value)
+}, 'n')
 
-/**
- * Convert number to uppercase letter A-Z (alias for `letter()`)
- * @param num Number between 1-26
- * @returns Uppercase letter or empty string if out of range
- * @example upperletter(1) // returns "A"
- * @remarks
- * In range-transform extension, you can also use shortcut `upperletter` instead of `upperletter(n)`
- */
-export const upperletter = (num: number): string => {
+/** Alias of {@link letter}, for symmetry with {@link lowerletter} at the call site. */
+export const upperletter = registerArgKind((num: number): string => {
   return letter(num)
-}
+}, 'n')
 
-/**
- * Convert number to lowercase letter a-z (1=a, 2=b, etc.)
- * @param num Number between 1-26
- * @returns Lowercase letter or empty string if out of range
- * @example lowerletter(1) // returns "a"
- * @remarks
- * In range-transform extension, you can also use shortcut `lowerletter` instead of `lowerletter(n)`
- */
-export const lowerletter = (num: number): string => {
-  if (num < 1 || num > 26) {
+/** `1` -> `'a'` … `26` -> `'z'`; anything else is `''`. See {@link letter}. */
+export const lowerletter = registerArgKind((num: number): string => {
+  const value = Number(num)
+  if (!Number.isFinite(value) || value < 1 || value > 26) {
     return ''
   }
-  return String.fromCharCode(96 + num)
-}
+  return String.fromCharCode(96 + value)
+}, 'n')
 
-/**
- * Convert string to uppercase
- * @param text Input text
- * @returns Uppercase text
- * @example upper("hello") // returns "HELLO"
- * @remarks
- * In range-transform extension, you can also use shortcut `upper` instead of `upper(s)`
- */
-export const upper = (text: string): string => {
-  return text.toUpperCase()
-}
+/** Uppercases the text, locale-independently (`toUpperCase`, not `toLocaleUpperCase`). */
+export const upper = registerArgKind((text: string): string => {
+  return String(text).toUpperCase()
+}, 's')
 
-/**
- * Convert string to lowercase
- * @param text Input text
- * @returns Lowercase text
- * @example lower("HELLO") // returns "hello"
- * @remarks
- * In range-transform extension, you can also use shortcut `lower` instead of `lower(s)`
- */
-export const lower = (text: string): string => {
-  return text.toLowerCase()
-}
+/** Lowercases the text, locale-independently (`toLowerCase`, not `toLocaleLowerCase`). */
+export const lower = registerArgKind((text: string): string => {
+  return String(text).toLowerCase()
+}, 's')

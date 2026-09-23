@@ -1,530 +1,455 @@
-import * as assert from 'assert'
+import { describe, expect, it } from 'bun:test'
+import { DEFAULT_SEQUENCE_LENGTH } from '../../const/const'
+import { MAX_SEQUENCE_LENGTH, normalize } from '../../range/normalize'
 
-import { normalize } from '@/range/normalize'
-import { FALLBACK_SEQUENCE_LENGTH } from '@/const/const'
-
-suite('normalize function', () => {
-  test('should normalize ascending sequence with positive step', () => {
-    const result = normalize(1, 10, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 2,
-      length: 5, // (10-1)/2 + 1 = 5, but capped by selectionCount since > 1
-    })
+describe('normalize', () => {
+  it('normalizes an ascending range with a positive step', () => {
+    expect(normalize(1, 10, 2, 5)).toEqual({ start: 1, step: 2, length: 5 })
   })
 
-  test('should normalize descending sequence with negative step', () => {
-    const result = normalize(10, 1, -2, 5)
-    assert.deepStrictEqual(result, {
-      start: 10,
-      step: -2,
-      length: 5, // (1-10)/(-2) + 1 = 5, but capped by selectionCount since > 1
-    })
+  it('normalizes a descending range with a negative step', () => {
+    expect(normalize(10, 1, -2, 5)).toEqual({ start: 10, step: -2, length: 5 })
   })
 
-  test('should normalize ascending sequence with negative step (auto-correct)', () => {
-    const result = normalize(1, 10, -2, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 2, // corrected to positive since direction is positive
-      length: 5, // (10-1)/2 + 1 = 5, but capped by selectionCount since > 1
-    })
+  it('flips a negative step to match an ascending direction', () => {
+    expect(normalize(1, 10, -2, 5)).toEqual({ start: 1, step: 2, length: 5 })
   })
 
-  test('should normalize descending sequence with positive step (auto-correct)', () => {
-    const result = normalize(10, 1, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: 10,
-      step: -2, // corrected to negative since direction is negative
-      length: 5, // (1-10)/(-2) + 1 = 5, but capped by selectionCount since > 1
-    })
+  it('flips a positive step to match a descending direction', () => {
+    expect(normalize(10, 1, 2, 5)).toEqual({ start: 10, step: -2, length: 5 })
   })
 
-  test('should handle undefined stop with single line selection', () => {
-    const result = normalize(5, undefined, 2, 1)
-    assert.deepStrictEqual(result, {
+  it('falls back to the default length for a single selection', () => {
+    expect(normalize(5, undefined, 2, 1)).toEqual({
       start: 5,
       step: 2,
-      length: FALLBACK_SEQUENCE_LENGTH, // defaults to 10 when selectionCount <= 1
+      length: DEFAULT_SEQUENCE_LENGTH,
     })
   })
 
-  test('should handle undefined stop with multi-line selection', () => {
-    const result = normalize(5, undefined, 2, 7)
-    assert.deepStrictEqual(result, {
+  it('uses the selection count when there is no stop', () => {
+    expect(normalize(5, undefined, 2, 7)).toEqual({
       start: 5,
       step: 2,
-      length: 7, // uses selectionCount when > 1
+      length: 7,
     })
   })
 
-  test('should handle undefined step (default to 1)', () => {
-    const result = normalize(1, 10, undefined, 5)
-    assert.deepStrictEqual(result, {
+  it('defaults an undefined step to 1', () => {
+    expect(normalize(1, 10, undefined, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // (10-1)/1 + 1 = 10, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle zero step in ascending sequence', () => {
-    const result = normalize(1, 10, 0, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 0,
-      length: 5, // uses selectionCount when step is 0
-    })
+  it('keeps a zero step in an ascending range', () => {
+    expect(normalize(1, 10, 0, 5)).toEqual({ start: 1, step: 0, length: 5 })
   })
 
-  test('should handle zero step in descending sequence', () => {
-    const result = normalize(10, 1, 0, 5)
-    assert.deepStrictEqual(result, {
-      start: 10,
-      step: 0,
-      length: 5, // uses selectionCount when step is 0
-    })
+  it('keeps a zero step in a descending range', () => {
+    expect(normalize(10, 1, 0, 5)).toEqual({ start: 10, step: 0, length: 5 })
   })
 
-  test('should handle equal start and stop (step becomes 0)', () => {
-    const result = normalize(5, 5, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: 5,
-      step: 0, // direction is 0, so step becomes 0
-      length: 5, // uses selectionCount when step is 0
-    })
+  it('collapses the step to 0 when start equals stop', () => {
+    expect(normalize(5, 5, 2, 5)).toEqual({ start: 5, step: 0, length: 5 })
   })
 
-  test('should handle negative start and positive stop', () => {
-    const result = normalize(-5, 5, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: -5,
-      step: 2,
-      length: 5, // (5-(-5))/2 + 1 = 6, but capped to selectionCount since > 1
-    })
+  it('handles a negative start with a positive stop', () => {
+    expect(normalize(-5, 5, 2, 5)).toEqual({ start: -5, step: 2, length: 5 })
   })
 
-  test('should handle positive start and negative stop', () => {
-    const result = normalize(5, -5, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: 5,
-      step: -2, // corrected to negative since direction is negative
-      length: 5, // (-5-5)/(-2) + 1 = 6, but capped to selectionCount since > 1
-    })
+  it('handles a positive start with a negative stop', () => {
+    expect(normalize(5, -5, 2, 5)).toEqual({ start: 5, step: -2, length: 5 })
   })
 
-  test('should handle negative start and negative stop (ascending)', () => {
-    const result = normalize(-10, -1, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: -10,
-      step: 2,
-      length: 5, // (-1-(-10))/2 + 1 = 5, but capped by selectionCount since > 1
-    })
+  it('handles two negative bounds, ascending', () => {
+    expect(normalize(-10, -1, 2, 5)).toEqual({ start: -10, step: 2, length: 5 })
   })
 
-  test('should handle negative start and negative stop (descending)', () => {
-    const result = normalize(-1, -10, 2, 5)
-    assert.deepStrictEqual(result, {
-      start: -1,
-      step: -2, // corrected to negative since direction is negative
-      length: 5, // (-10-(-1))/(-2) + 1 = 5, but capped by selectionCount since > 1
-    })
+  it('handles two negative bounds, descending', () => {
+    expect(normalize(-1, -10, 2, 5)).toEqual({ start: -1, step: -2, length: 5 })
   })
 
-  test('should handle large numbers', () => {
-    const result = normalize(1000000, 2000000, 100000, 5)
-    assert.deepStrictEqual(result, {
+  it('handles large numbers', () => {
+    expect(normalize(1000000, 2000000, 100000, 5)).toEqual({
       start: 1000000,
       step: 100000,
-      length: 5, // (2000000-1000000)/100000 + 1 = 11, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle decimal step values', () => {
-    const result = normalize(1, 5, 0.5, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 0.5,
-      length: 5, // (5-1)/0.5 + 1 = 9, but capped to selectionCount since > 1
-    })
+  it('handles a decimal step', () => {
+    expect(normalize(1, 5, 0.5, 5)).toEqual({ start: 1, step: 0.5, length: 5 })
   })
 
-  test('should handle very small step values', () => {
-    const result = normalize(0, 1, 0.001, 5)
-    assert.deepStrictEqual(result, {
+  it('handles a very small step', () => {
+    expect(normalize(0, 1, 0.001, 5)).toEqual({
       start: 0,
       step: 0.001,
-      length: 5, // (1-0)/0.001 + 1 = 1001, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle undefined stop with negative step', () => {
-    const result = normalize(10, undefined, -2, 5)
-    assert.deepStrictEqual(result, {
+  it('keeps a negative step when there is no stop', () => {
+    expect(normalize(10, undefined, -2, 5)).toEqual({
       start: 10,
       step: -2,
-      length: 5, // uses selectionCount when stop is undefined
+      length: 5,
     })
   })
 
-  test('should handle undefined stop with zero step', () => {
-    const result = normalize(5, undefined, 0, 5)
-    assert.deepStrictEqual(result, {
+  it('keeps a zero step when there is no stop', () => {
+    expect(normalize(5, undefined, 0, 5)).toEqual({
       start: 5,
       step: 0,
-      length: 5, // uses selectionCount when stop is undefined
+      length: 5,
     })
   })
 
-  test('should handle edge case with maximum safe integer', () => {
-    const result = normalize(
-      Number.MAX_SAFE_INTEGER - 10,
-      Number.MAX_SAFE_INTEGER,
-      1,
-      5,
-    )
-    assert.deepStrictEqual(result, {
+  it('handles the maximum safe integer', () => {
+    expect(
+      normalize(Number.MAX_SAFE_INTEGER - 10, Number.MAX_SAFE_INTEGER, 1, 5),
+    ).toEqual({
       start: Number.MAX_SAFE_INTEGER - 10,
       step: 1,
-      length: 5, // (MAX_SAFE_INTEGER - (MAX_SAFE_INTEGER-10))/1 + 1 = 11, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle edge case with minimum safe integer', () => {
-    const result = normalize(
-      Number.MIN_SAFE_INTEGER,
-      Number.MIN_SAFE_INTEGER + 10,
-      1,
-      5,
-    )
-    assert.deepStrictEqual(result, {
+  it('handles the minimum safe integer', () => {
+    expect(
+      normalize(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER + 10, 1, 5),
+    ).toEqual({
       start: Number.MIN_SAFE_INTEGER,
       step: 1,
-      length: 5, // ((MIN_SAFE_INTEGER+10) - MIN_SAFE_INTEGER)/1 + 1 = 11, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle undefined start (converted to 1)', () => {
-    const result = normalize(undefined, 10, 2, 5)
-    assert.deepStrictEqual(result, {
+  it('defaults an undefined start to 1', () => {
+    expect(normalize(undefined, 10, 2, 5)).toEqual({
       start: 1,
       step: 2,
-      length: 5, // (10-1)/2 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle undefined start and stop (start=1, stop=undefined)', () => {
-    const result = normalize(undefined, undefined, 2, 5)
-    assert.deepStrictEqual(result, {
+  it('defaults an undefined start with no stop', () => {
+    expect(normalize(undefined, undefined, 2, 5)).toEqual({
       start: 1,
       step: 2,
-      length: 5, // uses selectionCount when stop is undefined
+      length: 5,
     })
   })
 
-  test('should handle undefined start, stop, and step (all defaults)', () => {
-    const result = normalize(undefined, undefined, undefined, 5)
-    assert.deepStrictEqual(result, {
+  it('defaults every undefined argument', () => {
+    expect(normalize(undefined, undefined, undefined, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // uses selectionCount when stop is undefined
+      length: 5,
     })
   })
 
-  test('should handle undefined stop with selection length 0', () => {
-    const result = normalize(5, undefined, 2, 0)
-    assert.deepStrictEqual(result, {
+  it('falls back to the default length for a selection count of 0', () => {
+    expect(normalize(5, undefined, 2, 0)).toEqual({
       start: 5,
       step: 2,
-      length: FALLBACK_SEQUENCE_LENGTH, // defaults to 10 when selectionCount <= 1
+      length: DEFAULT_SEQUENCE_LENGTH,
     })
   })
 
-  test('should handle undefined stop with selection length 1', () => {
-    const result = normalize(5, undefined, 2, 1)
-    assert.deepStrictEqual(result, {
+  it('falls back to the default length for a selection count of 1', () => {
+    expect(normalize(5, undefined, 2, 1)).toEqual({
       start: 5,
       step: 2,
-      length: FALLBACK_SEQUENCE_LENGTH, // defaults to 10 when selectionCount <= 1
+      length: DEFAULT_SEQUENCE_LENGTH,
     })
   })
 
-  test('should handle undefined stop with selection length 2', () => {
-    const result = normalize(5, undefined, 2, 2)
-    assert.deepStrictEqual(result, {
+  it('uses a selection count of 2', () => {
+    expect(normalize(5, undefined, 2, 2)).toEqual({
       start: 5,
       step: 2,
-      length: 2, // uses selectionCount when > 1
+      length: 2,
     })
   })
 
-  test('should handle very large selection length', () => {
-    const result = normalize(1, undefined, 1, 1000)
-    assert.deepStrictEqual(result, {
+  it('uses a very large selection count', () => {
+    expect(normalize(1, undefined, 1, 1000)).toEqual({
       start: 1,
       step: 1,
-      length: 1000, // uses selectionCount when > 1
+      length: 1000,
     })
   })
 
-  test('should handle step that would cause overflow', () => {
-    const result = normalize(1, 10, 1000000, 5)
-    assert.deepStrictEqual(result, {
+  it('emits a single element when the step overshoots the stop', () => {
+    expect(normalize(1, 10, 1000000, 5)).toEqual({
       start: 1,
       step: 1000000,
-      length: 1, // (10-1)/1000000 + 1 = 1 (Math.floor(9/1000000) + 1 = 1)
+      length: 1,
     })
   })
 
-  test('should handle step that would cause underflow', () => {
-    const result = normalize(10, 1, -1000000, 5)
-    assert.deepStrictEqual(result, {
+  it('emits a single element when a negative step overshoots the stop', () => {
+    expect(normalize(10, 1, -1000000, 5)).toEqual({
       start: 10,
       step: -1000000,
-      length: 1, // (1-10)/(-1000000) + 1 = 1 (Math.floor(9/1000000) + 1 = 1)
+      length: 1,
     })
   })
 
-  test('should handle NaN start value (converted to 1)', () => {
-    const result = normalize(NaN, 5, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('converts a NaN start to 1', () => {
+    expect(normalize(NaN, 5, 1, 5)).toEqual({ start: 1, step: 1, length: 5 })
+  })
+
+  it('converts an Infinity start to 1', () => {
+    expect(normalize(Infinity, 5, 1, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle Infinity start value (converted to 1)', () => {
-    const result = normalize(Infinity, 5, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('converts a -Infinity start to 1', () => {
+    expect(normalize(-Infinity, 5, 1, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle -Infinity start value (converted to 1)', () => {
-    const result = normalize(-Infinity, 5, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('treats a NaN stop as absent', () => {
+    expect(normalize(1, NaN, 1, 5)).toEqual({ start: 1, step: 1, length: 5 })
+  })
+
+  it('treats an Infinity stop as absent', () => {
+    expect(normalize(1, Infinity, 1, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle NaN stop value (converted to undefined)', () => {
-    const result = normalize(1, NaN, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('treats a -Infinity stop as absent', () => {
+    expect(normalize(1, -Infinity, 1, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // uses selectionCount when stop is NaN (converted to undefined)
+      length: 5,
     })
   })
 
-  test('should handle Infinity stop value (converted to undefined)', () => {
-    const result = normalize(1, Infinity, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('converts a NaN step to 1', () => {
+    expect(normalize(1, 5, NaN, 5)).toEqual({ start: 1, step: 1, length: 5 })
+  })
+
+  it('converts an Infinity step to 1', () => {
+    expect(normalize(1, 5, Infinity, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // uses selectionCount when stop is Infinity (converted to undefined)
+      length: 5,
     })
   })
 
-  test('should handle -Infinity stop value (converted to undefined)', () => {
-    const result = normalize(1, -Infinity, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('converts a -Infinity step to 1', () => {
+    expect(normalize(1, 5, -Infinity, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // uses selectionCount when stop is -Infinity (converted to undefined)
+      length: 5,
     })
   })
 
-  test('should handle NaN step value (converted to 1)', () => {
-    const result = normalize(1, 5, NaN, 5)
-    assert.deepStrictEqual(result, {
+  it('repairs a range where every argument is non-finite', () => {
+    expect(normalize(NaN, Infinity, -Infinity, 5)).toEqual({
       start: 1,
       step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle Infinity step value (converted to 1)', () => {
-    const result = normalize(1, 5, Infinity, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
-    })
-  })
-
-  test('should handle -Infinity step value (converted to 1)', () => {
-    const result = normalize(1, 5, -Infinity, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, but capped by selectionCount since > 1
-    })
-  })
-
-  test('should handle all NaN/Infinity values', () => {
-    const result = normalize(NaN, Infinity, -Infinity, 5)
-    assert.deepStrictEqual(result, {
-      start: 1, // NaN converted to 1
-      step: 1, // -Infinity converted to 1
-      length: 5, // Infinity converted to undefined, uses selectionCount
-    })
-  })
-
-  test('should handle zero step with undefined stop', () => {
-    const result = normalize(5, undefined, 0, 5)
-    assert.deepStrictEqual(result, {
+  it('keeps a zero step with an absent stop', () => {
+    expect(normalize(5, undefined, 0, 5)).toEqual({
       start: 5,
       step: 0,
-      length: 5, // uses selectionCount when stop is undefined
+      length: 5,
     })
   })
 
-  test('should handle zero step with defined stop', () => {
-    const result = normalize(5, 10, 0, 5)
-    assert.deepStrictEqual(result, {
-      start: 5,
-      step: 0, // direction is 5, but step remains 0 for constant sequence
-      length: 5, // uses selectionCount when step is 0
-    })
+  it('keeps a zero step with a present stop', () => {
+    expect(normalize(5, 10, 0, 5)).toEqual({ start: 5, step: 0, length: 5 })
   })
 
-  test('should handle very small positive step', () => {
-    const result = normalize(0, 0.1, 0.01, 5)
-    assert.deepStrictEqual(result, {
+  it('handles a very small positive step', () => {
+    expect(normalize(0, 0.1, 0.01, 5)).toEqual({
       start: 0,
       step: 0.01,
-      length: 5, // (0.1-0)/0.01 + 1 = 11, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle very small negative step', () => {
-    const result = normalize(0.1, 0, -0.01, 5)
-    assert.deepStrictEqual(result, {
+  it('handles a very small negative step', () => {
+    expect(normalize(0.1, 0, -0.01, 5)).toEqual({
       start: 0.1,
       step: -0.01,
-      length: 5, // (0-0.1)/(-0.01) + 1 = 11, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle large step that exceeds range', () => {
-    const result = normalize(1, 10, 20, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 20,
-      length: 1, // (10-1)/20 + 1 = 1 (Math.floor(9/20) + 1 = 1)
-    })
+  it('handles a step larger than the whole range', () => {
+    expect(normalize(1, 10, 20, 5)).toEqual({ start: 1, step: 20, length: 1 })
   })
 
-  test('should handle negative step that exceeds range', () => {
-    const result = normalize(10, 1, -20, 5)
-    assert.deepStrictEqual(result, {
+  it('handles a negative step larger than the whole range', () => {
+    expect(normalize(10, 1, -20, 5)).toEqual({
       start: 10,
       step: -20,
-      length: 1, // (1-10)/(-20) + 1 = 1 (Math.floor(9/20) + 1 = 1)
+      length: 1,
     })
   })
 
-  test('should handle step exactly equal to range', () => {
-    const result = normalize(1, 10, 9, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 9,
-      length: 2, // (10-1)/9 + 1 = 2
-    })
+  it('handles a step exactly equal to the range', () => {
+    expect(normalize(1, 10, 9, 5)).toEqual({ start: 1, step: 9, length: 2 })
   })
 
-  test('should handle step larger than range', () => {
-    const result = normalize(1, 10, 10, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 10,
-      length: 1, // (10-1)/10 + 1 = 1 (Math.floor(9/10) + 1 = 1)
-    })
+  it('handles a step one larger than the range', () => {
+    expect(normalize(1, 10, 10, 5)).toEqual({ start: 1, step: 10, length: 1 })
   })
 
-  test('should handle decimal start and stop with integer step', () => {
-    const result = normalize(1.5, 5.5, 1, 5)
-    assert.deepStrictEqual(result, {
+  it('handles decimal bounds with an integer step', () => {
+    expect(normalize(1.5, 5.5, 1, 5)).toEqual({
       start: 1.5,
       step: 1,
-      length: 5, // (5.5-1.5)/1 + 1 = 5, but capped by selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle integer start and stop with decimal step', () => {
-    const result = normalize(1, 5, 0.5, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 0.5,
-      length: 5, // (5-1)/0.5 + 1 = 9, but capped to selectionCount since > 1
-    })
+  it('handles integer bounds with a decimal step', () => {
+    expect(normalize(1, 5, 0.5, 5)).toEqual({ start: 1, step: 0.5, length: 5 })
   })
 
-  test('should handle all decimal values', () => {
-    const result = normalize(1.1, 5.5, 0.3, 5)
-    assert.deepStrictEqual(result, {
+  it('handles decimal bounds and a decimal step', () => {
+    expect(normalize(1.1, 5.5, 0.3, 5)).toEqual({
       start: 1.1,
       step: 0.3,
-      length: 5, // (5.5-1.1)/0.3 + 1 = 15, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle negative decimals', () => {
-    const result = normalize(-1.5, -5.5, -0.5, 5)
-    assert.deepStrictEqual(result, {
+  it('handles negative decimals', () => {
+    expect(normalize(-1.5, -5.5, -0.5, 5)).toEqual({
       start: -1.5,
       step: -0.5,
-      length: 5, // (-5.5-(-1.5))/(-0.5) + 1 = 9, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  test('should handle mixed positive and negative', () => {
-    const result = normalize(-1.5, 5.5, 0.5, 5)
-    assert.deepStrictEqual(result, {
+  it('handles mixed positive and negative decimals', () => {
+    expect(normalize(-1.5, 5.5, 0.5, 5)).toEqual({
       start: -1.5,
       step: 0.5,
-      length: 5, // (5.5-(-1.5))/0.5 + 1 = 15, but capped to selectionCount since > 1
+      length: 5,
     })
   })
 
-  // Additional tests for length capping behavior
-  test('should cap length when calculated length exceeds selectionCount and selectionCount > 1', () => {
-    const result = normalize(1, 20, 1, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 5, // (20-1)/1 + 1 = 20, but capped to selectionCount since > 1
+  it('caps the length at the selection count', () => {
+    expect(normalize(1, 20, 1, 5)).toEqual({ start: 1, step: 1, length: 5 })
+  })
+
+  it('leaves a length below the selection count alone', () => {
+    expect(normalize(1, 3, 1, 5)).toEqual({ start: 1, step: 1, length: 3 })
+  })
+
+  it('does not cap the length for a single selection', () => {
+    expect(normalize(1, 20, 1, 1)).toEqual({ start: 1, step: 1, length: 20 })
+  })
+
+  it('needs no capping when the length equals the selection count', () => {
+    expect(normalize(1, 5, 1, 5)).toEqual({ start: 1, step: 1, length: 5 })
+  })
+
+  describe('defaultLength', () => {
+    it('overrides the default length for a single selection', () => {
+      expect(normalize(5, undefined, 2, 1, 3)).toEqual({
+        start: 5,
+        step: 2,
+        length: 3,
+      })
+    })
+
+    it('overrides the default length for a zero step', () => {
+      expect(normalize(5, 5, 2, 1, 4)).toEqual({
+        start: 5,
+        step: 0,
+        length: 4,
+      })
+    })
+
+    it('is ignored once there is more than one selection', () => {
+      expect(normalize(5, undefined, 2, 6, 3)).toEqual({
+        start: 5,
+        step: 2,
+        length: 6,
+      })
     })
   })
 
-  test('should not cap length when calculated length is less than selectionCount', () => {
-    const result = normalize(1, 3, 1, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 3, // (3-1)/1 + 1 = 3, not capped since < selectionCount
+  describe('MAX_SEQUENCE_LENGTH', () => {
+    it('accepts a range of exactly the cap', () => {
+      expect(normalize(1, MAX_SEQUENCE_LENGTH, 1, 1)).toEqual({
+        start: 1,
+        step: 1,
+        length: MAX_SEQUENCE_LENGTH,
+      })
     })
-  })
 
-  test('should not cap length when selectionCount <= 1', () => {
-    const result = normalize(1, 20, 1, 1)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 20, // (20-1)/1 + 1 = 20, not capped since selectionCount <= 1
+    it('refuses a range one element past the cap', () => {
+      expect(normalize(1, MAX_SEQUENCE_LENGTH + 1, 1, 1)).toBeNull()
     })
-  })
 
-  test('should cap length when calculated length equals selectionCount', () => {
-    const result = normalize(1, 5, 1, 5)
-    assert.deepStrictEqual(result, {
-      start: 1,
-      step: 1,
-      length: 5, // (5-1)/1 + 1 = 5, equals selectionCount so no capping needed
+    it('refuses a range far past the cap rather than materialising it', () => {
+      // 1:100000000 used to abort the extension host with an uncatchable
+      // "JavaScript heap out of memory", on every keystroke of the preview.
+      expect(normalize(1, 100000000, 1, 1)).toBeNull()
+    })
+
+    it('refuses a descending range past the cap', () => {
+      expect(normalize(1000000, 1, -1, 1)).toBeNull()
+    })
+
+    it('refuses a tiny step that turns a short range into a long sequence', () => {
+      expect(normalize(0, 1, 0.00001, 1)).toBeNull()
+    })
+
+    it('accepts a long range whose step keeps it under the cap', () => {
+      expect(normalize(1, 1000000, 100, 1)).toEqual({
+        start: 1,
+        step: 100,
+        length: 10000,
+      })
+    })
+
+    it('refuses a defaultLength past the cap', () => {
+      expect(normalize(1, undefined, 1, 1, MAX_SEQUENCE_LENGTH + 1)).toBeNull()
+    })
+
+    it('still fills a selection count above the cap', () => {
+      // Those elements are one per cursor the user placed, so they are not the
+      // runaway allocation the cap exists to stop.
+      const count = MAX_SEQUENCE_LENGTH + 10000
+      expect(normalize(1, undefined, 1, count)).toEqual({
+        start: 1,
+        step: 1,
+        length: count,
+      })
+    })
+
+    it('caps a runaway range down to a selection count above the cap', () => {
+      const count = MAX_SEQUENCE_LENGTH + 10000
+      expect(normalize(1, 100000000, 1, count)).toEqual({
+        start: 1,
+        step: 1,
+        length: count,
+      })
     })
   })
 })

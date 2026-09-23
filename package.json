@@ -1,19 +1,19 @@
 {
   "name": "range-transform",
-  "publisher": "tomchen",
   "displayName": "Range & Transform",
-  "description": "Insert sequence from range (2:9, Mon:Fri:2); transform multi-selections with JS (n*3, letter(n))",
-  "version": "1.0.0",
+  "description": "Fill multi-selections with a sequence (2:9, Mon:Fri:2, 一:十), or rewrite them with a JavaScript expression (n*3, *3, upper) — with a live inline diff preview.",
+  "version": "0.0.1",
+  "publisher": "tomchen",
+  "author": "Tom Chen <tomchen.org@gmail.com>",
+  "license": "MIT",
   "icon": "icon.png",
-  "packageManager": "bun@1.2.2",
+  "packageManager": "bun@1.3.10",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.103.0"
   },
   "extensionKind": [
-    [
-      "ui",
-      "workspace"
-    ]
+    "ui",
+    "workspace"
   ],
   "categories": [
     "Formatters",
@@ -26,82 +26,163 @@
     "transform",
     "conversion",
     "selection",
+    "multi-cursor",
+    "multi-selection",
     "number",
     "numeral",
+    "roman",
     "chinese",
     "french",
     "date",
     "letter",
-    "insert",
-    "multi-selection"
+    "insert"
   ],
+  "homepage": "https://toolsu.com/range-transform/",
   "bugs": {
-    "url": "https://github.com/tomchen/vscode-range-transform/issues"
+    "url": "https://github.com/toolsu/vscode-range-transform/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tomchen/vscode-range-transform"
+    "url": "https://github.com/toolsu/vscode-range-transform.git"
   },
-  "license": "MIT",
   "main": "./dist/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "The extension only rewrites text in the active editor, and only ever evaluates expressions typed by the user during the current session. It never reads or executes workspace content."
+    },
+    "virtualWorkspaces": true
+  },
   "contributes": {
     "commands": [
       {
-        "command": "range-transform.range",
-        "title": "R&T: Insert Sequence from Range"
+        "command": "range-transform.insertSequence",
+        "title": "Insert Sequence from Range",
+        "category": "Range & Transform"
       },
       {
         "command": "range-transform.transform",
-        "title": "R&T: Transform Multi-Selections (Simple)"
+        "title": "Transform Selections",
+        "category": "Range & Transform"
       },
       {
-        "command": "range-transform.transform-advanced",
-        "title": "R&T: Transform Multi-Selections (Advanced)"
+        "command": "range-transform.transformAdvanced",
+        "title": "Transform Selections (Advanced)",
+        "category": "Range & Transform"
+      },
+      {
+        "command": "range-transform.internal.applyScratch",
+        "title": "Apply Transform",
+        "category": "Range & Transform",
+        "icon": "$(check)"
+      },
+      {
+        "command": "range-transform.internal.cancelScratch",
+        "title": "Cancel Transform",
+        "category": "Range & Transform",
+        "icon": "$(close)"
       }
-    ]
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "range-transform.internal.applyScratch",
+          "when": "false"
+        },
+        {
+          "command": "range-transform.internal.cancelScratch",
+          "when": "false"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "range-transform.internal.applyScratch",
+          "group": "navigation@1",
+          "when": "rangeTransform.scratchOpen && resourceScheme == file && resourceFilename =~ /^rt-transform-/"
+        },
+        {
+          "command": "range-transform.internal.cancelScratch",
+          "group": "navigation@2",
+          "when": "rangeTransform.scratchOpen && resourceScheme == file && resourceFilename =~ /^rt-transform-/"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "range-transform.internal.applyScratch",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "editorTextFocus && rangeTransform.scratchOpen && resourceScheme == file && resourceFilename =~ /^rt-transform-/"
+      }
+    ],
+    "configuration": {
+      "title": "Range & Transform",
+      "properties": {
+        "rangeTransform.defaultSequenceLength": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 10000,
+          "scope": "language-overridable",
+          "description": "How many items to generate when there is a single cursor and the range has no stop value. A count, so it must be a whole number."
+        },
+        "rangeTransform.preview.maxLength": {
+          "type": "integer",
+          "default": 120,
+          "minimum": 10,
+          "maximum": 10000,
+          "scope": "language-overridable",
+          "description": "Maximum number of characters shown per item in the inline preview. Longer results are truncated with an ellipsis."
+        },
+        "rangeTransform.rememberLastInput": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "Pre-fill the input box with the last accepted range or expression. Window-scoped on purpose: the input box belongs to the window, not to the file that happens to be open."
+        }
+      }
+    }
   },
-  "activationEvents": [],
   "scripts": {
-    "vscode:prepublish": "bun run compile:prod",
-    "compile": "bun run check-types && bun run lint && node esbuild.js && bun run gentypes",
-    "compile:prod": "bun run check-types && bun run lint && node esbuild.js --production && bun run gentypes",
-    "watch": "npm-run-all -p watch:*",
+    "gen": "bun scripts/genDts.ts",
+    "postinstall": "bun run gen",
+    "compile": "bun run gen && node esbuild.js",
+    "compile:prod": "bun run gen && node esbuild.js --production",
+    "compile:e2e": "bun run gen && tsc -p tsconfig.e2e.json",
+    "check-bundle": "bun run gen && node esbuild.js --production --check",
+    "vscode:prepublish": "bun run check-bundle",
+    "watch": "bun run gen && bun run --parallel 'watch:*'",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "bun run compile-tests && bun run compile && bun run lint",
-    "checkall": "bun run check-types && bun run lint && bun run format",
-    "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "format": "prettier --write src",
-    "format:check": "prettier --check src",
-    "test": "vscode-test",
-    "test:clean": "rimraf .vscode-test out && bun run test",
-    "vsix": "vsce package",
-    "genconvnumtypes": "bun scripts/genConvnumTypes.ts",
-    "gentransformtypes": "bun scripts/genTransformTypes.ts",
-    "gentypes": "bun run genconvnumtypes && bun run gentransformtypes",
-    "postinstall": "bun run gentypes"
+    "check-types": "bun run gen && tsc --noEmit && tsc --noEmit -p tsconfig.globals.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "bun run test:unit && bun run test:e2e",
+    "test:unit": "bun test src/test",
+    "test:e2e": "bun run compile && bun run compile:e2e && vscode-test",
+    "test:clean": "rimraf .vscode-test out dist && bun run test",
+    "checkall": "bun run check-types && bun run lint && bun run format:check && bun run test:unit && bun run check-bundle",
+    "vsix": "bunx @vscode/vsce package --no-dependencies"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.3.14",
     "@types/mocha": "^10.0.10",
-    "@types/module-alias": "^2.0.4",
-    "@types/node": "20.x",
-    "@types/vscode": "^1.75.0",
-    "@typescript-eslint/eslint-plugin": "^8.35.0",
-    "@typescript-eslint/parser": "^8.35.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "esbuild": "^0.25.5",
-    "eslint": "^9.30.0",
-    "module-alias": "^2.2.3",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^3.6.2",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.8.3"
+    "@types/node": "^22.19.2",
+    "@types/vscode": "1.103.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.8.0",
+    "prettier": "^3.9.6",
+    "rimraf": "^6.1.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0"
   },
   "dependencies": {
-    "convnum": "^0.2.7"
+    "convnum": "^1.0.0"
   }
 }

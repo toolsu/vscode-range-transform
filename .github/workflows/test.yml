@@ -2,110 +2,100 @@ name: Test
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  check:
+    name: Types, lint and formatting
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
+      - run: bun install --frozen-lockfile
 
-      - name: Check TypeScript types
-        run: bun run check-types
+      - run: bun run check-types
+      - run: bun run lint
+      - run: bun run format:check
 
-      - name: Lint code
-        run: bun run lint
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Format check
-        run: bun run format:check
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
-      - name: Compile extension
-        run: bun run compile
+      - run: bun install --frozen-lockfile
+      - run: bun run test:unit
 
-      - name: Start virtual display
+  e2e:
+    name: Extension host tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # VS Code needs a display. Only Linux runners lack one.
+      - name: Start a virtual display
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
-      - name: Run tests
-        run: bun run test
+      - run: bun run test:e2e
 
-  test-windows:
-    runs-on: windows-latest
+  package:
+    name: Package
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20.x"
+          node-version: '22.x'
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install
+      - run: bun install --frozen-lockfile
 
-      - name: Check TypeScript types
-        run: bun run check-types
+      # Catches manifest problems — a missing icon, a bad `engines.vscode`, an
+      # `@types/vscode` newer than the declared engine — that no other job would.
+      - run: bunx @vscode/vsce package --no-dependencies --out range-transform.vsix
 
-      - name: Lint code
-        run: bun run lint
-
-      - name: Compile extension
-        run: bun run compile
-
-      - name: Run tests
-        run: bun run test
-
-  test-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/upload-artifact@v4
         with:
-          node-version: "20.x"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Check TypeScript types
-        run: bun run check-types
-
-      - name: Lint code
-        run: bun run lint
-
-      - name: Compile extension
-        run: bun run compile
-
-      - name: Run tests
-        run: bun run test
+          name: vsix
+          path: range-transform.vsix

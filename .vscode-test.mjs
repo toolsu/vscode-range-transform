@@ -1,9 +1,11 @@
 import { defineConfig } from '@vscode/test-cli'
 
 export default defineConfig({
-  files: 'out/test/**/*.test.js',
+  // Only the end-to-end suite runs inside the extension host. Everything that does not
+  // need `vscode` at runtime lives in `src/test` and runs under `bun test`.
+  files: 'out/e2e/**/*.e2e.js',
   mocha: {
     ui: 'tdd',
-    require: ['./out/test/setup.js'],
+    timeout: 20000,
   },
 })

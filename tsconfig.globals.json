@@ -1,0 +1,15 @@
+{
+  // Type-checks the ambient globals that "Transform Selections (Advanced)" exposes
+  // inside a user's scratch file, in isolation from the extension's own source.
+  //
+  // `src/usertypes/assert.ts` asserts that `src/usertypes/rt.d.ts` (hand-written, the
+  // JSDoc users see on hover) and `buildVars()` (the runtime bag) describe the same
+  // set of names with the same types. Adding a variable to one without the other
+  // fails this project.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUnusedLocals": false
+  },
+  "include": ["src/usertypes/**/*"],
+  "exclude": []
+}

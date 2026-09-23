@@ -2,9 +2,9 @@ import react from '@astrojs/react'
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 
-// Served at https://toolsu.com/range-transform/ through a Cloudflare Worker that forwards
-// the path to this site's Cloudflare Pages project. `build:pages` nests the output under
-// out/range-transform/ so the Pages deployment has the same paths as production.
+// Served at https://toolsu.com/range-transform/ by a Cloudflare Worker with static
+// assets (see wrangler.jsonc). `build:pages` nests the output under out/range-transform/
+// so the files sit at the same paths as their URLs.
 // https://astro.build/config
 export default defineConfig({
   site: 'https://toolsu.com',

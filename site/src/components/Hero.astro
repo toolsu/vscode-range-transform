@@ -1,0 +1,95 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+import RangeTransformDemo from './RangeTransformDemo.tsx'
+import { CONVNUM_URL, localeOf, text } from './i18n'
+
+// Starlight's page-title anchor id (not exported publicly)
+const PAGE_TITLE_ID = '_top'
+
+const { data } = Astro.locals.starlightRoute.entry
+const { title = data.title, tagline, actions = [] } = data.hero || {}
+const locale = localeOf(Astro.locals.starlightRoute.locale)
+const t = text[locale]
+const installCommand = 'ext install tomchen.range-transform'
+---
+
+<section class="hero-x">
+  <div class="hero-x-bg" aria-hidden="true">
+    <div class="hero-x-dots"></div>
+    <div class="hero-x-glow hero-x-glow-a"></div>
+    <div class="hero-x-glow hero-x-glow-b"></div>
+  </div>
+
+  <div class="hero-x-copy">
+    <a class="hero-x-eyebrow" href={CONVNUM_URL[locale]}>
+      <span class="hero-x-eyebrow-tag">{t.eyebrowTag}</span>
+      <span class="hero-x-eyebrow-text">{t.eyebrow}</span>
+      <Icon name="external" size="0.9rem" class="hero-x-eyebrow-icon" />
+    </a>
+    <h1 id={PAGE_TITLE_ID} data-page-title class="hero-x-title hero-x-title-long" set:html={title} />
+    {tagline && <p class="hero-x-tagline" set:html={tagline} />}
+
+    {
+      actions.length > 0 && (
+        <div class="hero-x-actions">
+          {actions.map(({ icon, link: href, text: label, variant, attrs }) => {
+            const external = /^https?:/.test(href)
+            return (
+              <a
+                href={href}
+                class:list={[
+                  variant === 'minimal' ? 'fx-link' : 'fx-btn',
+                  variant === 'secondary' ? 'fx-ghost' : variant !== 'minimal' && 'fx-primary',
+                ]}
+                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                {...attrs}
+              >
+                <span class="fx-btn-label">{label}</span>
+                {icon?.name && <Icon name={icon.name} size="1.15rem" class="fx-btn-icon" />}
+              </a>
+            )
+          })}
+        </div>
+      )
+    }
+
+    <button
+      type="button"
+      class="install-pill"
+      data-copy={installCommand}
+      aria-label={`${t.copyInstall}: ${installCommand}`}
+      title={t.copyInstall}
+    >
+      <span class="install-pill-prompt" aria-hidden="true">&gt;</span>
+      <code>{installCommand}</code>
+      <span class="install-pill-icon" aria-hidden="true">
+        <svg class="install-copy" viewBox="0 0 24 24"
+          ><rect x="9" y="9" width="11" height="11" rx="2.5"></rect><path
+            d="M5 15V6a2 2 0 0 1 2-2h8"></path></svg
+        >
+        <svg class="install-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+      </span>
+      <span class="install-pill-toast" aria-hidden="true">{t.copied}</span>
+    </button>
+  </div>
+
+  <div class="hero-x-demo">
+    <RangeTransformDemo locale={locale} client:load />
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('.install-pill').forEach((pill) => {
+    let timer = 0
+    pill.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pill.dataset.copy ?? '')
+      } catch {
+        return
+      }
+      pill.dataset.copied = 'true'
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => delete pill.dataset.copied, 1600)
+    })
+  })
+</script>

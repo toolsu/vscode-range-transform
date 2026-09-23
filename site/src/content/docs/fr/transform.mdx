@@ -1,0 +1,153 @@
+---
+title: Transformer les sélections
+description: Réécrivez chaque sélection avec une expression JavaScript, avec des raccourcis d’écriture, des variables par sélection, des fonctions utilitaires et toute la bibliothèque convnum.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+Lancez **Range & Transform: Transform Selections** et tapez n’importe quelle expression
+JavaScript sur une ligne. Sa valeur remplace chaque sélection.
+
+```js
+n * 3                                   // 1, 2, 3   ->  3, 6, 9
+upper(s)                                // a, b, c   ->  A, B, C
+`${i}. ${s}`                            // a, b, c   ->  1. a, 2. b, 3. c
+s + '_' + i                             // a, b, c   ->  a_1, b_2, c_3
+i.toString().padStart(3, '0')           //           ->  001, 002, 003
+i % 2 ? upper(s) : s                    // x, y      ->  X, y
+[...s].reverse().join('')               // hello     ->  olleh
+ss.map(number).reduce((a, b) => a + b)  // 10,20,30  ->  60, 60, 60
+convnum.toRoman(n)                      // 4, 9      ->  IV, IX
+cn                                      // IV, 十二, 0xff  ->  4, 12, 255
+```
+
+## Raccourcis d’écriture
+
+Trois règles évitent le code répétitif. Chacune ne se déclenche que sur une écriture qui
+serait invalide ou inutile en vrai JavaScript, donc une expression complète n’est jamais
+modifiée.
+
+| Vous tapez | Ce qui s’exécute | Pourquoi c’est sans ambiguïté |
+| --- | --- | --- |
+| `*3` `/2` `%7` `**2` `+1` `-1` | `n*3` `n/2` … | une expression ne peut pas commencer par un opérateur binaire |
+| `.trim()` `.padStart(3,'0')` `?.length` | `s.trim()` … | une expression ne peut pas commencer par un accès à un membre |
+| `upper` `letter` `convnum.toRoman` | `upper(s)` `letter(n)` `convnum.toRoman(n)` | une fonction seule est appliquée à la variable qu’elle attend |
+
+La dernière règle porte sur la _valeur_, pas sur le texte : `s.replace('upper', 'x')`
+reste intact, et tout convertisseur convnum à un seul argument fonctionne seul, pas
+seulement les fonctions intégrées. Ceux qui demandent un second argument, non :
+`convnum.toBase`, `convnum.convertTo` et `convnum.formatDayString` doivent être appelés en
+entier, tout comme `convnum.toJulianDay`, dont l’argument est une `Date`. Une fonction que
+vous avez écrite vous-même n’est jamais appelée à votre place non plus. Sans appel, elles
+insèrent `[Function: toBase]` (ou `[Function (anonymous)]` si elles n’ont pas de nom),
+ce qui vous signale qu’il manque un appel.
+
+`+` et `-` s’appliquent à `n` et se lisent comme de l’arithmétique : `-1` sur une
+sélection `5` donne `4`. Pour la constante `-1`, écrivez `(-1)` : le premier caractère
+est alors une parenthèse, qui ne déclenche aucune règle. Ou utilisez
+[Insérer une séquence](/range-transform/fr/insert-sequence/), qui est fait pour les
+constantes.
+
+## Variables
+
+| Nom | Valeur |
+| --- | --- |
+| `s` | le texte sélectionné, tel quel (sans suppression des espaces) |
+| `n` | `s` lu comme un nombre : tout sauf les chiffres, `.` et `-` est retiré, donc `"item 42"` donne `42`. `NaN` s’il n’y a pas de nombre |
+| `cn` | `s` lu comme un nombre dans le système où il est écrit : `IV` donne `4`, `十二` donne `12`, `0xff` donne `255`, `Wednesday` donne `3`. `NaN` si rien ne le reconnaît. Équivaut à `convnum.anyToNumber(s)` |
+| `i` / `i0` | la position de cette sélection, à partir de 1 / de 0, dans l’ordre du document |
+| `l` | le nombre de sélections |
+| `ss` | toutes les chaînes sélectionnées, dans l’ordre du document. Le même tableau pour chaque sélection, utile pour des totaux |
+| `wl` | la ligne entière où commence cette sélection |
+| `len` | longueur de `s` en unités de code UTF-16 (`"😀"` compte pour 2 ; `[...s].length` compte les points de code) |
+| `wc` | nombre de mots de `s` séparés par des espaces |
+| `li` / `li0` | ligne relative à la première sélection, à partir de 1 / de 0 |
+| `fli` / `fli0` | ligne dans le fichier, à partir de 1 / de 0. `fli` correspond à la marge |
+
+## Fonctions
+
+| Nom | Rôle |
+| --- | --- |
+| `number(text)` | lit une chaîne comme un nombre, de la même façon que `n` est dérivé de `s` |
+| `letter(num)` / `upperletter(num)` | `1`–`26` → `A`–`Z` |
+| `lowerletter(num)` | `1`–`26` → `a`–`z` |
+| `upper(text)` / `lower(text)` | change la casse |
+| `convnum` | toute la bibliothèque [convnum](https://toolsu.com/convnum/api/readme/) : `convnum.toRoman(cn)`, `convnum.toEnglishWords(n)`, `convnum.toChineseWords(cn)`, `convnum.toHex(n)`, `convnum.toMonth(cn)`, `convnum.fromRoman(s)`, `convnum.anyToNumber(s)`, … |
+
+Le JavaScript standard est aussi disponible : `Math`, `Date`, `JSON`, les littéraux de
+gabarit, les expressions régulières et les fonctions fléchées.
+
+## En cas de problème
+
+Une **erreur de syntaxe** bloque <kbd>Entrée</kbd> et est expliquée sous la zone de
+saisie. Une **erreur d’exécution sur une sélection** (`n` valait `NaN`, une propriété
+manquait) marque cette sélection d’un ⚠ dans l’aperçu, la laisse intacte et applique
+les autres.
+
+Un code qui **se termine sans produire de valeur**, comme `let out = upper(s)` sans rien
+après, est refusé. C’est une propriété du code et non du texte : il échoue pour chaque
+sélection et rien n’est appliqué. Terminez le script par la valeur voulue, ou écrivez un
+`return` explicite.
+
+Une expression qui ne se termine jamais est **interrompue** plutôt que de figer
+l’éditeur, après un quart de seconde plus une milliseconde par sélection, deux secondes au
+maximum. C’est important, car l’aperçu s’exécute pendant que vous tapez encore, et un code
+à moitié écrit comme `while (x > 1) {` devient complet dès que VS Code ferme
+automatiquement l’accolade.
+
+## Ce qui est inséré
+
+La valeur est convertie en texte : les chaînes telles quelles, `null` comme rien, une
+`Date` au format `YYYY-MM-DD`, et toute valeur structurée comme le littéral JavaScript que
+vous pourriez recoller dans votre code (`[1,2,3]`, `{name: "John", age: 30}`, `/ab+c/g`).
+
+`undefined` n’insère rien non plus, mais seulement quand vous l’avez demandé : une
+expression seule, ou un script avec un `return` explicite. Un script qui arrive simplement
+à sa fin relève du cas « pas de valeur » ci-dessus.
+
+## Transform Selections (Advanced)
+
+**Range & Transform: Transform Selections (Advanced)** fait la même chose avec plus de
+place. La commande ouvre un fichier TypeScript temporaire à côté de votre document :
+
+- **IntelliSense complet.** Survolez `s`, `wc` ou `convnum.toMonth` pour voir sa
+  documentation. L’autocomplétion, l’aide aux signatures et la vérification de types
+  fonctionnent.
+- **Autant de lignes que vous voulez.** C’est la valeur de la dernière expression qui est
+  insérée, sans `return` ni fonction englobante (un `return` explicite fonctionne aussi).
+  C’est la dernière _ligne_ contenant du code qui compte, donc donnez à cette expression
+  une ligne à part.
+- **Le diff en direct continue** dans votre document d’origine, dans la colonne voisine.
+- **Pas de raccourcis d’écriture.** `*3` et `.trim()` sont des commodités de la zone de
+  saisie sur une ligne ; un fichier sur plusieurs lignes est lu comme du JavaScript
+  ordinaire, donc écrivez `n * 3` et `s.trim()`. Les fonctions seules marchent toujours :
+  une dernière ligne `upper` signifie `upper(s)`.
+
+Avec une sélection `hello-world`, ce code insère `I. HELLO WORLD` :
+
+```ts
+const parts = s.split('-')
+const label = parts.map(upper).join(' ')
+
+`${convnum.toRoman(i)}. ${label}`
+```
+
+<Aside type="caution" title="Donnez à la valeur finale sa propre ligne">
+Si vous collez ces deux dernières lignes, JavaScript lit l’accent grave comme une
+_étiquette_ appliquée à l’expression précédente, ce qui échoue avec « Cannot access
+'label' before initialization ». Une ligne qui commence par `` ` ``, `(`, `[`, `+`, `-`
+ou `/` prolonge la ligne précédente au lieu de commencer une nouvelle instruction.
+</Aside>
+
+**Fermez l’onglet pour appliquer.** C’est ainsi que l’extension Git de VS Code traite un
+message de commit : fermer l’éditeur, c’est valider. Pour annuler, videz le fichier avant
+de le fermer, ou utilisez le bouton **✕** dans la barre de titre de l’éditeur. Il y a
+aussi un bouton **✓**, et <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Entrée</kbd>, si vous
+préférez le faire explicitement.
+
+Le fichier s’enregistre pendant que vous tapez : sa fermeture ne demande jamais s’il faut
+le conserver, et rien n’est perdu si la fenêtre disparaît. Une expression avec une erreur
+de syntaxe n’est jamais appliquée : **✓** et <kbd>Ctrl</kbd>/<kbd>⌘</kbd> +
+<kbd>Entrée</kbd> signalent l’erreur et laissent l’éditeur en place, et fermer l’onglet le
+rouvre aussitôt avec votre texte. Une faute de frappe ne fait rien perdre, mais l’onglet
+ne se fermera pas tant que vous n’aurez pas corrigé l’erreur ou annulé.

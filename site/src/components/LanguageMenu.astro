@@ -1,0 +1,105 @@
+---
+import { Languages } from '@lucide/astro'
+import { getCollection } from 'astro:content'
+
+interface Props {
+  id: string
+}
+
+const { id } = Astro.props
+const docs = await getCollection('docs')
+const docIds = new Set(docs.map((entry) => entry.id))
+const routeId = Astro.locals.starlightRoute.entry.id
+const currentLocale = Astro.locals.starlightRoute.locale ?? 'root'
+// Paths are served under the site's base, so strip it before looking at the locale.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+const pathname = Astro.url.pathname.slice(base.length) || '/'
+const path = pathname.replace(/^\/(zh-cn|fr)(?=\/|$)/, '') || '/'
+const pageId = path === '/' ? '' : routeId.replace(/^(zh-cn|fr)\//, '')
+const languageLabel =
+  currentLocale === 'zh-cn'
+    ? '选择语言'
+    : currentLocale === 'fr'
+      ? 'Choisir la langue'
+      : 'Choose language'
+const languages = [
+  { code: 'root', name: 'English', id: pageId || 'index', href: `${base}${path}` },
+  {
+    code: 'zh-cn',
+    name: '简体中文',
+    id: pageId ? `zh-cn/${pageId}` : 'zh-cn',
+    href: `${base}/zh-cn${path}`,
+  },
+  { code: 'fr', name: 'Français', id: pageId ? `fr/${pageId}` : 'fr', href: `${base}/fr${path}` },
+].filter(({ id }) => docIds.has(id))
+const showMenu = languages.length > 1
+---
+
+{
+  showMenu && (
+    <div class="docs-language-menu" data-language-menu>
+      <button
+        class="docs-icon-button"
+        type="button"
+        aria-label={languageLabel}
+        title={languageLabel}
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls={`docs-language-options-${id}`}
+      >
+        <Languages size={20} aria-hidden="true" />
+      </button>
+      <div class="docs-language-options" id={`docs-language-options-${id}`}>
+        {languages.map(({ code, name, href }) => (
+          <a
+            href={href}
+            lang={code === 'root' ? 'en' : code === 'zh-cn' ? 'zh-CN' : 'fr'}
+            aria-current={code === currentLocale ? 'page' : undefined}
+          >
+            {name}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-language-menu]').forEach((menu) => {
+    const button = menu.querySelector<HTMLButtonElement>('button')
+    if (!button) return
+    let suppressFocusOpen = false
+
+    const setOpen = (open: boolean) => {
+      menu.dataset.open = String(open)
+      button.setAttribute('aria-expanded', String(open))
+    }
+
+    menu.addEventListener('pointerenter', (event) => {
+      if (event.pointerType === 'mouse') setOpen(true)
+    })
+    menu.addEventListener('pointerleave', (event) => {
+      if (event.pointerType === 'mouse') setOpen(false)
+    })
+    menu.addEventListener('focusin', () => {
+      if (!suppressFocusOpen) setOpen(true)
+    })
+    menu.addEventListener('focusout', (event) => {
+      if (!menu.contains(event.relatedTarget as Node | null)) setOpen(false)
+    })
+    menu.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        suppressFocusOpen = true
+        setOpen(false)
+        button.focus()
+        queueMicrotask(() => {
+          suppressFocusOpen = false
+        })
+      }
+    })
+    button.addEventListener('click', () => setOpen(true))
+    document.addEventListener('pointerdown', (event) => {
+      if (!menu.contains(event.target as Node)) setOpen(false)
+    })
+  })
+</script>

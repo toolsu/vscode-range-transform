@@ -1,0 +1,144 @@
+---
+title: Transform Selections
+description: Rewrite every selection with a JavaScript expression, with shorthand, per-selection variables, helper functions and the whole convnum library.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+Run **Range & Transform: Transform Selections** and type any one-line JavaScript
+expression. Its value replaces each selection.
+
+```js
+n * 3                                   // 1, 2, 3   ->  3, 6, 9
+upper(s)                                // a, b, c   ->  A, B, C
+`${i}. ${s}`                            // a, b, c   ->  1. a, 2. b, 3. c
+s + '_' + i                             // a, b, c   ->  a_1, b_2, c_3
+i.toString().padStart(3, '0')           //           ->  001, 002, 003
+i % 2 ? upper(s) : s                    // x, y      ->  X, y
+[...s].reverse().join('')               // hello     ->  olleh
+ss.map(number).reduce((a, b) => a + b)  // 10,20,30  ->  60, 60, 60
+convnum.toRoman(n)                      // 4, 9      ->  IV, IX
+cn                                      // IV, 十二, 0xff  ->  4, 12, 255
+```
+
+## Shorthand
+
+Three rules let you skip the boilerplate. Each one only fires on something that would be
+illegal or pointless as real JavaScript, so a complete expression is never touched.
+
+| You type | It runs | Why it is unambiguous |
+| --- | --- | --- |
+| `*3` `/2` `%7` `**2` `+1` `-1` | `n*3` `n/2` … | an expression cannot begin with a binary operator |
+| `.trim()` `.padStart(3,'0')` `?.length` | `s.trim()` … | an expression cannot begin with a member access |
+| `upper` `letter` `convnum.toRoman` | `upper(s)` `letter(n)` `convnum.toRoman(n)` | a bare function is applied to the variable it takes |
+
+The last rule works on the _value_, not the text, so `s.replace('upper', 'x')` is left
+alone, and every single-argument convnum converter works bare, not just the built-in
+helpers. Converters that need a second argument do not: `convnum.toBase`,
+`convnum.convertTo` and `convnum.formatDayString` have to be called in full, and so does
+`convnum.toJulianDay`, whose argument is a `Date`. A function you wrote yourself is never
+called for you either. Left un-called, any of them inserts `[Function: toBase]` (or
+`[Function (anonymous)]` if it has no name), which is your hint that a call is missing.
+
+`+` and `-` bind to `n` and read as arithmetic, so `-1` on a selection of `5` gives `4`.
+For the constant `-1`, write `(-1)`: the first character is then a parenthesis, which no
+rule fires on. Or use [Insert Sequence from Range](/range-transform/insert-sequence/),
+which is what constants are for.
+
+## Variables
+
+| Name | Value |
+| --- | --- |
+| `s` | the selected text, exactly as it is (not trimmed) |
+| `n` | `s` read as a number: everything but digits, `.` and `-` is stripped, so `"item 42"` gives `42`. `NaN` when there is no number |
+| `cn` | `s` read as a number in whatever numeral system it is written in: `IV` gives `4`, `十二` gives `12`, `0xff` gives `255`, `Wednesday` gives `3`. `NaN` when nothing recognises it. Same as `convnum.anyToNumber(s)` |
+| `i` / `i0` | this selection's position, 1-based / 0-based, in document order |
+| `l` | how many selections there are |
+| `ss` | every selected string, in document order. The same array for every selection, so it can be used for totals |
+| `wl` | the whole line this selection starts on |
+| `len` | length of `s` in UTF-16 code units (`"😀"` counts as 2; `[...s].length` counts code points instead) |
+| `wc` | number of whitespace-separated words in `s` |
+| `li` / `li0` | line relative to the first selection, 1-based / 0-based |
+| `fli` / `fli0` | line within the file, 1-based / 0-based. `fli` matches the gutter |
+
+## Functions
+
+| Name | What it does |
+| --- | --- |
+| `number(text)` | reads a string as a number, the way `n` is derived from `s` |
+| `letter(num)` / `upperletter(num)` | `1`–`26` → `A`–`Z` |
+| `lowerletter(num)` | `1`–`26` → `a`–`z` |
+| `upper(text)` / `lower(text)` | change case |
+| `convnum` | the whole [convnum](https://toolsu.com/convnum/api/readme/) library: `convnum.toRoman(cn)`, `convnum.toEnglishWords(n)`, `convnum.toChineseWords(cn)`, `convnum.toHex(n)`, `convnum.toMonth(cn)`, `convnum.fromRoman(s)`, `convnum.anyToNumber(s)`, … |
+
+Standard JavaScript is all there too: `Math`, `Date`, `JSON`, template literals, regular
+expressions and arrow functions.
+
+## When something goes wrong
+
+A **syntax error** blocks <kbd>Enter</kbd> and is explained under the input box. A
+**runtime error in one selection** (`n` was `NaN`, a property was missing) marks that
+selection with ⚠ in the preview, leaves it untouched, and lets the rest through.
+
+Code that **ends without producing a value**, such as `let out = upper(s)` with nothing
+after it, is refused. That is a property of the code rather than of the text, so it fails
+for every selection and nothing is applied. End the script with the value you want, or
+write an explicit `return`.
+
+An expression that never finishes is **stopped** rather than left to freeze the editor,
+after a quarter of a second plus a millisecond per selection, up to two seconds. That
+matters because the preview runs while you are still typing, and half-written code such
+as `while (x > 1) {` becomes complete the moment VS Code auto-closes the brace.
+
+## What gets inserted
+
+The value is turned into text: strings as they are, `null` as nothing, a `Date` as
+`YYYY-MM-DD`, and anything structured as the JavaScript literal you could paste back into
+your code (`[1,2,3]`, `{name: "John", age: 30}`, `/ab+c/g`).
+
+`undefined` also inserts nothing, but only where you asked for it: a single expression,
+or a script with an explicit `return`. A script that just runs off the end is the "no
+value" case above.
+
+## Transform Selections (Advanced)
+
+**Range & Transform: Transform Selections (Advanced)** does the same thing with room to
+breathe. It opens a scratch TypeScript file beside your document:
+
+- **Full IntelliSense.** Hover `s`, `wc` or `convnum.toMonth` for its documentation.
+  Completion, signature help and type checking all work.
+- **As many lines as you like.** The value of the last expression is what gets inserted,
+  with no `return` or wrapping function needed (an explicit `return` works too). It is
+  the last _line_ that carries code, so give that expression a line of its own.
+- **The live diff keeps running** in your original document, in the column beside you.
+- **No shorthand.** `*3` and `.trim()` are conveniences of the one-line input box; a
+  multi-line file is read as plain JavaScript, so write `n * 3` and `s.trim()`. Bare
+  helpers still work: a last line of `upper` means `upper(s)`.
+
+Given a selection of `hello-world`, this inserts `I. HELLO WORLD`:
+
+```ts
+const parts = s.split('-')
+const label = parts.map(upper).join(' ')
+
+`${convnum.toRoman(i)}. ${label}`
+```
+
+<Aside type="caution" title="Give the final value its own line">
+Run those last two lines together and JavaScript reads the backtick as a _tag_ applied to
+the expression before it, which fails with "Cannot access 'label' before
+initialization". A line that starts with `` ` ``, `(`, `[`, `+`, `-` or `/` continues
+the line above rather than starting a new statement.
+</Aside>
+
+**Close the tab to apply.** This is how VS Code's own Git extension treats a commit
+message: closing the editor is what commits. To cancel, empty the file before closing
+it, or use the **✕** button in the editor's title bar. There is also a **✓** button, and
+<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>, if you would rather say so explicitly.
+
+The file saves itself as you type, so closing it never asks whether to keep it, and
+nothing is lost if the window goes away. An expression with a syntax error is never
+applied: **✓** and <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> report the error and
+leave the editor where it is, and closing the tab brings it straight back with your text
+still in it. Nothing is thrown away over a typo, but the tab will not go away until you
+fix the error or cancel.

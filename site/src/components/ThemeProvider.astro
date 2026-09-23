@@ -1,0 +1,40 @@
+{/* Apply the saved theme or the browser's preferred color scheme before the page is painted. */}
+<script is:inline>
+  (() => {
+    let savedTheme;
+    try {
+      savedTheme = localStorage.getItem('starlight-theme');
+    } catch {
+      // Color scheme detection still works when storage is unavailable.
+    }
+    const preferredTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme =
+      savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : preferredTheme;
+  })();
+</script>
+
+{/* Pointer effects: a spotlight that follows the cursor and a ripple on press, for any button that opts in. */}
+<script is:inline>
+  (() => {
+    const spot = '.fx-btn, .fx-spot, .sl-link-button, .card, .nc-field'
+    const ripple = '.fx-btn, .fx-ripple, .sl-link-button'
+    document.addEventListener('pointermove', (event) => {
+      const el = event.target instanceof Element && event.target.closest(spot)
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${event.clientX - r.left}px`)
+      el.style.setProperty('--my', `${event.clientY - r.top}px`)
+    }, { passive: true })
+    document.addEventListener('pointerdown', (event) => {
+      const el = event.target instanceof Element && event.target.closest(ripple)
+      if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      const r = el.getBoundingClientRect()
+      const size = Math.max(r.width, r.height) * 2.2
+      const wave = document.createElement('span')
+      wave.className = 'fx-wave'
+      wave.style.cssText = `width:${size}px;height:${size}px;left:${event.clientX - r.left - size / 2}px;top:${event.clientY - r.top - size / 2}px`
+      el.appendChild(wave)
+      wave.addEventListener('animationend', () => wave.remove())
+    }, { passive: true })
+  })();
+</script>

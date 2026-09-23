@@ -1,0 +1,95 @@
+---
+title: Insert Sequence from Range
+description: Fill every cursor with the next item of a start:stop:step range, in any numeral system or date format convnum understands.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+Run **Range & Transform: Insert Sequence from Range** and type a range:
+
+```text
+start:stop:step
+```
+
+- **`start`** is required and decides the _kind_ of sequence (see the table below).
+- **`stop`** is optional. Leave it out and the sequence keeps counting: `1:` fills every
+  cursor, `mon::2` gives every other weekday.
+- **`step`** is optional and defaults to `1`. Its sign is corrected for you, so `10:1`
+  counts down without needing `-1`.
+
+With several cursors, one item goes to each cursor and the sequence stops there. With a
+single cursor there is nowhere to spread it, so the whole sequence is inserted joined by
+newlines: put one cursor down, type `1:10`, and get ten lines.
+
+<Aside type="tip">
+Want to try a range before installing? The [Sequence Generator](https://toolsu.com/convnum/tools/sequence-generator/)
+runs the same convnum conversions in your browser.
+</Aside>
+
+## What `start` can be
+
+Anything [convnum](https://toolsu.com/convnum/) recognises: 26 numeral systems plus dates, each counted and written
+back in its own terms.
+
+| Kind | Example | Result |
+| --- | --- | --- |
+| Decimal | `1:10:2` | `1` `3` `5` `7` `9` |
+| Zero-padded decimal | `01:05` | `01` `02` `03` `04` `05` |
+| Latin letter | `a:e` or `A:E` | `a` `b` `c` `d` `e` or `A` `B` `C` `D` `E` |
+| Roman numeral | `II:X` | `II` `III` `IV` `V` … |
+| Hexadecimal, binary, octal | `0x1:0xf`, `0b1:0b101`, `0o1:0o7` | prefix and case preserved |
+| Eastern Arabic | `٠:٥` | `٠` `١` `٢` `٣` `٤` `٥` |
+| English words | `one:five` | `one` `two` `three` `four` `five` |
+| English ordinal words | `first:fifth` | `first` `second` `third` … |
+| English ordinal abbreviations | `1st:5th` | `1st` `2nd` `3rd` `4th` `5th` |
+| French words | `un:cinq` | `un` `deux` `trois` … |
+| French ordinal words | `premier:cinquième` | `premier` `deuxième` … |
+| French ordinal abbreviations | `1er:5e` | `1er` `2e` `3e` `4e` `5e` |
+| Chinese numerals | `一:五` | `一` `二` `三` `四` `五` |
+| Chinese financial numerals | `壹:伍` | `壹` `贰` `叁` `肆` `伍` |
+| Heavenly Stems 天干 | `甲:癸` | `甲` `乙` `丙` … |
+| Earthly Branches 地支 | `子:辰` | `子` `丑` `寅` `卯` `辰` |
+| Solar terms 节气 | `立春:惊蛰` or `立春:驚蟄` | `立春` `雨水` `惊蛰` or `立春` `雨水` `驚蟄` |
+| Greek letter | `α:ε` or `Α:Δ` | `α` `β` `γ` `δ` `ε` or `Α` `Β` `Γ` `Δ` |
+| Greek letter names | `Alpha:Delta` | `Alpha` `Beta` `Gamma` `Delta` |
+| Cyrillic letter | `а:г` or `А:Г` | `а` `б` `в` `г` or `А` `Б` `В` `Г` |
+| Hebrew letter | `א:ה` | `א` `ב` `ג` `ד` `ה` |
+| NATO phonetic | `Alfa:Echo` | `Alfa` `Bravo` `Charlie` … |
+| Astrological sign | `Aries:Cancer` | `Aries` `Taurus` `Gemini` `Cancer` |
+| Month name | `Jan:Jun`, `January:June`, `janvier:juin`, `1月:6月` | short or long, case and language preserved |
+| Day of week | `Mon:Fri`, `monday:friday`, `lundi:vendredi`, `星期一:星期五` | short or long, case and language preserved |
+| Date | `2023-01-01:2023-01-05` | also `.` `/` `,` separators, `D-M-Y`, `M-D-Y` |
+| Year-month | `2023-01:2023-06` | steps by month |
+| Dates with a month name | `Dec 25, 2023:Dec 29, 2023`, `Dec 25 2023:Dec 29 2023`, `25 Dec 2023:29 Dec 2023` | the format of `start` is kept |
+| East Asian date | `2023年12月25日:2023年12月29日`, `2023年12月:2024年3月`, `2023년 12월 25일:2023년 12월 29일` | each field is labelled, so nothing is guessed |
+
+## Things worth knowing
+
+- **The style of `start` is preserved.** `MON:FRI` stays upper case, `0XA:0XF` keeps its
+  upper-case prefix, `01:10` keeps its leading zero, and `一:十` stays Simplified.
+- **Cyclic kinds wrap around.** `fri::2` continues past Sunday into the next week, and
+  `甲::3` wraps through the ten stems.
+- **`step` can be written in any base notation.** `0x0A::0x10` steps by sixteen, the
+  same as `0x0A::16`.
+- **`start` and `stop` must be the same kind.** `Mon:5` produces nothing, and the input
+  box tells you so before you press <kbd>Enter</kbd>. Watch out for pairs that share a
+  kind you did not have in mind: `1` and `a` are both hexadecimal digits, so `1:a` counts
+  `1` `2` … `9` `a` rather than failing.
+- **Roman numerals versus letters.** `I`, `V`, `X`, `C` and friends are also perfectly
+  good Latin letters, and a single letter is read as a letter. Write at least one end
+  with two or more characters (`II:X` or `I:XX`) to get Roman numerals.
+- **Month and weekday names work in about forty languages.** `janvier:juin`,
+  `Januar:Juni`, `enero:junio`, `январь:июнь`, `ocak:haziran`, `1月:6月` and
+  `星期一:星期五` are each counted and written back in their own language, keeping the
+  case and the long or short form you typed. A name that several languages share is
+  settled by the other end of the range where possible: `mars:juin` is French, `mars:maj`
+  is Swedish. With nothing to go on, the more widely used language wins.
+- **Chinese numerals are read in their canonical form.** `一万` counts in ordinary
+  numerals and `壹万` in the financial ones. A bare `万` is neither (no Chinese numeral
+  is written that way), so it is not recognised, and nor is `一十` in place of `十`.
+
+## Settings that affect ranges
+
+`rangeTransform.defaultSequenceLength` (default `10`) is how many items a single cursor
+gets when the range has no `stop`. `rangeTransform.rememberLastInput` pre-fills the
+input box with the last range you used.

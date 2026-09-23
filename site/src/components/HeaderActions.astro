@@ -1,0 +1,26 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+import LanguageMenu from './LanguageMenu.astro'
+import ThemeToggle from './ThemeToggle.astro'
+
+interface Props {
+  id: string
+}
+
+const { id } = Astro.props
+---
+
+<div class="docs-header-actions">
+  <LanguageMenu id={id} />
+  <ThemeToggle />
+  <a
+    class="docs-icon-button"
+    href="https://github.com/toolsu/vscode-range-transform"
+    aria-label="GitHub"
+    title="GitHub"
+    rel="me noopener noreferrer"
+    target="_blank"
+  >
+    <Icon name="github" size="1.25rem" />
+  </a>
+</div>

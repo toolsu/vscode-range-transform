@@ -1,0 +1,126 @@
+---
+import { Moon, Sun } from '@lucide/astro'
+---
+
+<button
+  class="docs-icon-button docs-theme-toggle"
+  type="button"
+  data-theme-toggle
+  aria-label="Toggle color theme"
+  title="Toggle color theme"
+>
+  <Sun class="docs-theme-light-icon" size={20} aria-hidden="true" />
+  <Moon class="docs-theme-dark-icon" size={20} aria-hidden="true" />
+</button>
+
+<script>
+  const storageKey = 'starlight-theme'
+  const root = document.documentElement
+  const colorScheme = window.matchMedia('(prefers-color-scheme: dark)')
+  const language = root.lang.toLowerCase().startsWith('zh')
+    ? 'zh'
+    : root.lang.toLowerCase().startsWith('fr')
+      ? 'fr'
+      : 'en'
+  const labels = {
+    en: { light: 'Switch to light mode', dark: 'Switch to dark mode' },
+    zh: { light: '切换到浅色模式', dark: '切换到深色模式' },
+    fr: { light: 'Passer au mode clair', dark: 'Passer au mode sombre' },
+  }
+
+  function savedTheme() {
+    try {
+      const value = localStorage.getItem(storageKey)
+      return value === 'light' || value === 'dark' ? value : null
+    } catch {
+      return null
+    }
+  }
+
+  function syncButtons() {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark'
+    const label = labels[language][next]
+    document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((button) => {
+      button.setAttribute('aria-label', label)
+      button.title = label
+    })
+  }
+
+  function applyTheme(theme: 'light' | 'dark') {
+    root.dataset.theme = theme
+    try {
+      localStorage.setItem(storageKey, theme)
+    } catch {
+      // The toggle still works for this page when storage is unavailable.
+    }
+    syncButtons()
+  }
+
+  // Where the reveal circle starts and how far it must grow, as percentages of the
+  // transition's snapshot area rather than pixels. Chrome on a HiDPI Linux screen paints
+  // px values in ::view-transition-new(root) as physical pixels, which halves the circle at
+  // 2x and moves it towards the top left; percentages resolve against the pseudo-element's
+  // own size, so they come out right whatever unit Chrome settles on.
+  function revealGeometry(button: HTMLButtonElement) {
+    // The snapshot area is the full viewport including scrollbars, at its largest height
+    // (mobile toolbars retracted). A fixed probe of that size gives its size and origin.
+    const probe = document.createElement('div')
+    probe.style.cssText =
+      'position:fixed;left:0;top:0;width:100vw;height:100lvh;visibility:hidden;pointer-events:none'
+    document.body.appendChild(probe)
+    const area = probe.getBoundingClientRect()
+    probe.remove()
+
+    const b = button.getBoundingClientRect()
+    const cx = b.left + b.width / 2 - area.left
+    const cy = b.top + b.height / 2 - area.top
+    // Distance to the farthest corner, over the reference length a percentage radius of
+    // circle() resolves against: sqrt(width^2 + height^2) / sqrt(2).
+    const farthest = Math.hypot(Math.max(cx, area.width - cx), Math.max(cy, area.height - cy))
+    const reference = Math.hypot(area.width, area.height) / Math.SQRT2
+    return {
+      x: (cx / area.width) * 100,
+      y: (cy / area.height) * 100,
+      radius: (farthest / reference) * 100,
+    }
+  }
+
+  // Reveal the new theme in a circle spreading out from the pressed button.
+  function switchTheme(button: HTMLButtonElement) {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark'
+    if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      applyTheme(next)
+      return
+    }
+    const { x, y, radius } = revealGeometry(button)
+    root.classList.add('theme-switching')
+    const transition = document.startViewTransition(() => applyTheme(next))
+    transition.ready
+      .then(() => {
+        root.animate(
+          { clipPath: [`circle(0% at ${x}% ${y}%)`, `circle(${radius}% at ${x}% ${y}%)`] },
+          {
+            duration: 560,
+            easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)',
+            pseudoElement: '::view-transition-new(root)',
+          },
+        )
+      })
+      .catch(() => {
+        // Skipped transitions still apply the theme.
+      })
+    transition.finished.finally(() => root.classList.remove('theme-switching'))
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((button) => {
+    button.addEventListener('click', () => switchTheme(button))
+  })
+
+  colorScheme.addEventListener('change', () => {
+    if (savedTheme()) return
+    root.dataset.theme = colorScheme.matches ? 'dark' : 'light'
+    syncButtons()
+  })
+
+  syncButtons()
+</script>

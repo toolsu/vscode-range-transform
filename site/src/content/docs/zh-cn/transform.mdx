@@ -1,0 +1,103 @@
+---
+title: 变换选区
+description: 用 JavaScript 表达式改写每个选区，支持简写、选区变量、辅助函数和完整的 convnum 库。
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+运行 **Range & Transform: Transform Selections**，输入任意一行 JavaScript 表达式，它的值会替换每个选区。
+
+```js
+n * 3                                   // 1, 2, 3   ->  3, 6, 9
+upper(s)                                // a, b, c   ->  A, B, C
+`${i}. ${s}`                            // a, b, c   ->  1. a, 2. b, 3. c
+s + '_' + i                             // a, b, c   ->  a_1, b_2, c_3
+i.toString().padStart(3, '0')           //           ->  001, 002, 003
+i % 2 ? upper(s) : s                    // x, y      ->  X, y
+[...s].reverse().join('')               // hello     ->  olleh
+ss.map(number).reduce((a, b) => a + b)  // 10,20,30  ->  60, 60, 60
+convnum.toRoman(n)                      // 4, 9      ->  IV, IX
+cn                                      // IV, 十二, 0xff  ->  4, 12, 255
+```
+
+## 简写
+
+三条规则可以省去样板代码。每条规则只在“作为真正的 JavaScript 不合法或没有意义”的写法上生效，所以完整的表达式永远不会被改动。
+
+| 你输入 | 实际运行 | 为什么没有歧义 |
+| --- | --- | --- |
+| `*3` `/2` `%7` `**2` `+1` `-1` | `n*3` `n/2` … | 表达式不能以二元运算符开头 |
+| `.trim()` `.padStart(3,'0')` `?.length` | `s.trim()` … | 表达式不能以成员访问开头 |
+| `upper` `letter` `convnum.toRoman` | `upper(s)` `letter(n)` `convnum.toRoman(n)` | 单独写出的函数会被应用到它所需的变量上 |
+
+最后一条规则作用于*值*，而不是文本，所以 `s.replace('upper', 'x')` 不受影响；而且不只是内置辅助函数，所有单参数的 convnum 转换函数都可以直接单独写。需要第二个参数的转换函数不行：`convnum.toBase`、`convnum.convertTo` 和 `convnum.formatDayString` 必须完整调用，`convnum.toJulianDay` 也一样，因为它的参数是 `Date`。你自己写的函数也不会被自动调用。没有调用时，它们会插入 `[Function: toBase]`（没有名字时是 `[Function (anonymous)]`），这就提示你漏了调用。
+
+`+` 和 `-` 绑定到 `n`，按算术理解，所以对选区 `5` 使用 `-1` 会得到 `4`。要得到常量 `-1`，写 `(-1)`：第一个字符是括号，不会触发任何规则。或者使用[插入序列](/range-transform/zh-cn/insert-sequence/)，常量正是它的用途。
+
+## 变量
+
+| 名称 | 值 |
+| --- | --- |
+| `s` | 选中的文本，原样保留（不去除空白） |
+| `n` | 把 `s` 读作数字：除数字、`.` 和 `-` 以外的字符都会被去掉，所以 `"item 42"` 得到 `42`。没有数字时为 `NaN` |
+| `cn` | 按 `s` 所用的数字体系把它读作数字：`IV` 得到 `4`，`十二` 得到 `12`，`0xff` 得到 `255`，`Wednesday` 得到 `3`。无法识别时为 `NaN`。等同于 `convnum.anyToNumber(s)` |
+| `i` / `i0` | 当前选区按文档顺序的位置，从 1 / 从 0 开始 |
+| `l` | 选区总数 |
+| `ss` | 按文档顺序排列的所有选中字符串。每个选区拿到的是同一个数组，可以用来求和 |
+| `wl` | 选区起始所在的整行 |
+| `len` | `s` 的 UTF-16 码元长度（`"😀"` 算 2；`[...s].length` 则按码点计数） |
+| `wc` | `s` 中以空白分隔的词数 |
+| `li` / `li0` | 相对于第一个选区的行号，从 1 / 从 0 开始 |
+| `fli` / `fli0` | 在文件中的行号，从 1 / 从 0 开始。`fli` 与行号栏一致 |
+
+## 函数
+
+| 名称 | 作用 |
+| --- | --- |
+| `number(text)` | 把字符串读作数字，方式与从 `s` 得到 `n` 相同 |
+| `letter(num)` / `upperletter(num)` | `1`–`26` → `A`–`Z` |
+| `lowerletter(num)` | `1`–`26` → `a`–`z` |
+| `upper(text)` / `lower(text)` | 转换大小写 |
+| `convnum` | 完整的 [convnum](https://toolsu.com/convnum/api/readme/) 库：`convnum.toRoman(cn)`、`convnum.toEnglishWords(n)`、`convnum.toChineseWords(cn)`、`convnum.toHex(n)`、`convnum.toMonth(cn)`、`convnum.fromRoman(s)`、`convnum.anyToNumber(s)` 等 |
+
+标准 JavaScript 也都可以用：`Math`、`Date`、`JSON`、模板字符串、正则表达式和箭头函数。
+
+## 出错时
+
+**语法错误**会阻止 <kbd>Enter</kbd>，并在输入框下方给出说明。**某个选区的运行时错误**（`n` 是 `NaN`、某个属性不存在）会在预览中用 ⚠ 标出那个选区，保持它不变，其余选区照常应用。
+
+**没有产生值就结束的代码**会被拒绝，比如 `let out = upper(s)` 后面什么也没有。这是代码本身的问题，而不是文本的问题，所以对每个选区都会失败，什么也不会应用。请用你想要的值结束脚本，或者写一个显式的 `return`。
+
+永远不会结束的表达式会被**中止**，而不是让编辑器卡死：时限是四分之一秒，每个选区再加一毫秒，最长两秒。这很重要，因为预览在你输入时就在运行，而像 `while (x > 1) {` 这样写了一半的代码，在 VS Code 自动补上右括号的那一刻就变完整了。
+
+## 插入的内容
+
+值会被转成文本：字符串原样插入，`null` 插入空内容，`Date` 插入为 `YYYY-MM-DD`，结构化的值插入为可以粘贴回代码的 JavaScript 字面量（`[1,2,3]`、`{name: "John", age: 30}`、`/ab+c/g`）。
+
+`undefined` 也插入空内容，但只在你明确要求时：单个表达式，或带显式 `return` 的脚本。直接运行到结尾的脚本属于上面说的“没有值”的情况。
+
+## Transform Selections (Advanced)
+
+**Range & Transform: Transform Selections (Advanced)** 做的事情相同，但有更多空间。它会在文档旁边打开一个临时 TypeScript 文件：
+
+- **完整的 IntelliSense。** 把鼠标悬停在 `s`、`wc` 或 `convnum.toMonth` 上即可查看文档，自动补全、参数提示和类型检查都可以用。
+- **想写多少行都行。** 插入的是最后一个表达式的值，不需要 `return`，也不需要包一层函数（显式的 `return` 同样可以）。起作用的是最后一个包含代码的*行*，所以请让这个表达式单独占一行。
+- **实时差异继续显示**在你旁边一栏的原文档中。
+- **没有简写。** `*3` 和 `.trim()` 是单行输入框的便利写法；多行文件按普通 JavaScript 解析，所以要写 `n * 3` 和 `s.trim()`。单独的辅助函数仍然有效：最后一行写 `upper` 就是 `upper(s)`。
+
+对选区 `hello-world`，下面的代码会插入 `I. HELLO WORLD`：
+
+```ts
+const parts = s.split('-')
+const label = parts.map(upper).join(' ')
+
+`${convnum.toRoman(i)}. ${label}`
+```
+
+<Aside type="caution" title="让最终的值单独占一行">
+如果把最后两行连在一起，JavaScript 会把反引号当作作用于前一个表达式的*标签*，从而报错 "Cannot access 'label' before initialization"。以 `` ` ``、`(`、`[`、`+`、`-` 或 `/` 开头的行会接着上一行，而不是开始新语句。
+</Aside>
+
+**关闭标签页即应用。** VS Code 自带的 Git 扩展对提交信息也是这样处理的：关闭编辑器就是提交。要取消，在关闭前清空文件，或者点编辑器标题栏上的 **✕** 按钮。如果你更想明确操作，也可以点 **✓** 按钮或按 <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>。
+
+文件会在你输入时自动保存，所以关闭时不会询问是否保存，窗口意外关闭也不会丢失内容。有语法错误的表达式永远不会被应用：**✓** 和 <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> 会报告错误并留在编辑器中，关闭标签页会立刻把它重新打开，你的内容还在。不会因为一个笔误丢掉任何东西，但在你修好错误或取消之前，这个标签页关不掉。

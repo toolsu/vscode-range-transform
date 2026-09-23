@@ -1,0 +1,171 @@
+---
+title: Range & Transform
+description: Une extension VS Code construite sur convnum. Remplissez des sélections multiples avec une séquence comme 2:9, Mon:Fri:2 ou 一:十, ou réécrivez-les avec une expression JavaScript, avec un aperçu du diff en ligne.
+template: splash
+hero:
+  tagline: Remplissez des sélections multiples avec une séquence comme Mon:Fri ou 一:十, ou réécrivez-les avec une ligne de JavaScript, pendant qu’un diff en ligne montre le résultat.
+  actions:
+    - text: Installer depuis le Marketplace
+      link: https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform
+      icon: external
+    - text: Lire le guide
+      link: /range-transform/fr/insert-sequence/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/toolsu/vscode-range-transform
+      icon: external
+      variant: minimal
+---
+
+import { Aside, LinkCard, CardGrid, TabItem, Tabs } from '@astrojs/starlight/components'
+
+**Range & Transform** est une extension VS Code construite sur
+[convnum](https://toolsu.com/convnum/fr/) : tous les systèmes de numération et formats de
+date que convnum sait lire peuvent servir de plage, comme `1:10`, `Mon:Fri`, `II:X`,
+`一:十`, `2024-01-01::7` et bien d’autres. Chaque sélection peut aussi être réécrite avec
+une ligne de JavaScript, et toute la modification s’annule en une seule fois.
+
+## Installation
+
+<Tabs syncKey="vscode-install">
+<TabItem label="VS Code">
+
+Ouvrez **Quick Open** (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>P</kbd>) et lancez :
+
+```text
+ext install tomchen.range-transform
+```
+
+Vous pouvez aussi chercher **Range & Transform** dans la vue Extensions, ou l’installer
+depuis le [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform).
+
+</TabItem>
+<TabItem label="VSCodium, Cursor, etc.">
+
+Les éditeurs qui utilisent le registre Open VSX peuvent l’installer depuis
+[open-vsx.org](https://open-vsx.org/extension/tomchen/range-transform), ou chercher
+**Range & Transform** dans leur vue Extensions.
+
+</TabItem>
+<TabItem label="Ligne de commande">
+
+```sh
+code --install-extension tomchen.range-transform
+```
+
+</TabItem>
+</Tabs>
+
+Elle nécessite VS Code 1.103 ou ultérieur et fonctionne aussi dans les espaces de travail
+non approuvés et virtuels : elle ne réécrit que le texte de l’éditeur actif, et n’exécute
+que les expressions que vous tapez vous-même.
+
+## Trois commandes
+
+Ouvrez la palette de commandes (<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> +
+<kbd>P</kbd>) et tapez `rt`, `range` ou `transform` :
+
+| Commande | Ce que vous tapez | Ce qui se passe |
+| --- | --- | --- |
+| **Range & Transform: Insert Sequence from Range** | `1:10`, `Mon:Fri:2`, `一:十` | Chaque curseur reçoit l’élément suivant de la séquence |
+| **Range & Transform: Transform Selections** | `n*3`, `*3`, `upper`, `.trim()` | Chaque sélection est remplacée par le résultat de l’expression |
+| **Range & Transform: Transform Selections (Advanced)** | une expression sur plusieurs lignes, dans un vrai éditeur avec types et autocomplétion | La même chose, avec de la place pour réfléchir |
+
+Les trois commandes affichent un **diff en ligne en direct** pendant la saisie : le texte
+remplacé est barré en rouge, et le remplacement apparaît à côté en vert. Les deux
+premières s’exécutent dans une zone de saisie, où <kbd>Entrée</kbd> applique et
+<kbd>Échap</kbd> abandonne. La troisième s’exécute dans un vrai éditeur, où c’est la
+fermeture de l’onglet qui applique. Dans tous les cas, la réécriture entière s’annule en
+une seule fois.
+
+<CardGrid>
+  <LinkCard
+    title="Insérer une séquence"
+    description="La syntaxe start:stop:step, et tous les types de départ acceptés."
+    href="/range-transform/fr/insert-sequence/"
+  />
+  <LinkCard
+    title="Transformer les sélections"
+    description="Expressions, raccourcis d’écriture, variables, fonctions et l’éditeur Advanced."
+    href="/range-transform/fr/transform/"
+  />
+</CardGrid>
+
+## Créer des sélections multiples
+
+Tout fonctionne aussi sur une seule sélection, mais l’extension prend tout son sens avec
+plusieurs. Voici les méthodes utiles, pour la plupart tirées de la documentation
+[Basic editing](https://code.visualstudio.com/docs/editing/codebasics#_multiple-selections-multicursor)
+de VS Code :
+
+- Maintenez le bouton du milieu de la souris et faites glisser pour **sélectionner une colonne**
+- <kbd>Alt</kbd>/<kbd>⌥</kbd> + clic pour **ajouter un curseur**
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>D</kbd> pour **ajouter l’occurrence suivante** de la sélection
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd> pour **sélectionner toutes les occurrences**
+- Recherchez, puis <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>Entrée</kbd> pour **sélectionner toutes les correspondances**
+- <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd> pour **ajouter un curseur
+  en dessous ou au-dessus** (<kbd>⌥</kbd> + <kbd>⌘</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd> sur
+  macOS, <kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd> sur Linux)
+- <kbd>Shift</kbd> + <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>I</kbd> pour **placer un curseur
+  à la fin de chaque ligne sélectionnée**
+- <kbd>Shift</kbd> + <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>→</kbd>/<kbd>←</kbd> pour
+  **étendre ou réduire la sélection**
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>L</kbd> pour **sélectionner la ligne courante**
+
+Aide-mémoire complets :
+[Windows](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-windows.pdf),
+[Linux](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-linux.pdf),
+[macOS](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-macos.pdf).
+
+## Paramètres
+
+| Paramètre | Défaut | Description |
+| --- | --- | --- |
+| `rangeTransform.defaultSequenceLength` | `10` | Nombre d’éléments générés pour un seul curseur quand la plage n’a pas de `stop` |
+| `rangeTransform.preview.maxLength` | `120` | Longueur à partir de laquelle chaque élément est tronqué dans l’aperçu |
+| `rangeTransform.rememberLastInput` | `true` | Préremplit la zone de saisie avec ce que vous avez tapé la dernière fois |
+
+## Raccourcis clavier
+
+Un seul raccourci est réservé par défaut : <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Entrée</kbd>
+applique la transformation quand le fichier temporaire de l’éditeur Advanced est l’onglet
+actif. Il est limité à ce fichier et ne peut se déclencher nulle part ailleurs. Les trois
+commandes n’ont volontairement aucun raccourci : les raccourcis d’une extension priment
+sur ceux intégrés, donc toute touche réservée vous serait retirée tant que l’extension
+est installée.
+
+Pour définir les vôtres, lancez **Preferences: Open Keyboard Shortcuts (JSON)** et
+ajoutez :
+
+```jsonc
+{
+  "key": "ctrl+k r", // "cmd+k r" sur macOS
+  "command": "range-transform.insertSequence",
+  "when": "editorTextFocus && !editorReadonly"
+},
+{
+  "key": "ctrl+k t",
+  "command": "range-transform.transform",
+  "when": "editorTextFocus && !editorReadonly"
+},
+{
+  "key": "ctrl+k shift+t",
+  "command": "range-transform.transformAdvanced",
+  "when": "editorTextFocus && !editorReadonly"
+}
+```
+
+<Aside type="caution" title="Évitez les combinaisons Ctrl + Alt">
+Windows signale <kbd>AltGr</kbd> comme <kbd>Ctrl</kbd> + <kbd>Alt</kbd>. Sur toute
+disposition qui utilise <kbd>AltGr</kbd> pour taper des caractères (allemand, français,
+polonais, dispositions nordiques et bien d’autres), un raccourci <kbd>Ctrl</kbd> +
+<kbd>Alt</kbd> avale l’un de ces caractères.
+</Aside>
+
+## Code source et retours
+
+L’extension est open source sous licence MIT : le
+[code source](https://github.com/toolsu/vscode-range-transform), l’[historique des
+versions](https://github.com/toolsu/vscode-range-transform/blob/main/CHANGELOG.md) et le
+[suivi des problèmes](https://github.com/toolsu/vscode-range-transform/issues) sont sur
+GitHub.

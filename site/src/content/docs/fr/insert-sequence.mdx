@@ -1,0 +1,100 @@
+---
+title: Insérer une séquence
+description: Remplissez chaque curseur avec l’élément suivant d’une plage start:stop:step, dans n’importe quel système de numération ou format de date compris par convnum.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+Lancez **Range & Transform: Insert Sequence from Range** et tapez une plage :
+
+```text
+start:stop:step
+```
+
+- **`start`** est obligatoire et détermine le _type_ de séquence (voir le tableau
+  ci-dessous).
+- **`stop`** est facultatif. Sans lui, la séquence continue de compter : `1:` remplit
+  tous les curseurs, `mon::2` donne un jour de semaine sur deux.
+- **`step`** est facultatif et vaut `1` par défaut. Son signe est corrigé pour vous :
+  `10:1` compte à rebours sans avoir besoin de `-1`.
+
+Avec plusieurs curseurs, chaque curseur reçoit un élément et la séquence s’arrête là. Avec
+un seul curseur, il n’y a rien sur quoi répartir, donc toute la séquence est insérée en
+lignes séparées : placez un curseur, tapez `1:10`, et vous obtenez dix lignes.
+
+<Aside type="tip">
+Envie d’essayer une plage avant d’installer l’extension ? Le
+[générateur de séquences](https://toolsu.com/convnum/fr/tools/sequence-generator/) exécute les mêmes conversions
+convnum dans votre navigateur.
+</Aside>
+
+## Ce que `start` peut être
+
+Tout ce que [convnum](https://toolsu.com/convnum/fr/) reconnaît : 26 systèmes de numération plus les dates, chacun
+compté et réécrit selon ses propres règles.
+
+| Type | Exemple | Résultat |
+| --- | --- | --- |
+| Décimal | `1:10:2` | `1` `3` `5` `7` `9` |
+| Décimal avec zéros | `01:05` | `01` `02` `03` `04` `05` |
+| Lettre latine | `a:e` ou `A:E` | `a` `b` `c` `d` `e` ou `A` `B` `C` `D` `E` |
+| Chiffre romain | `II:X` | `II` `III` `IV` `V` … |
+| Hexadécimal, binaire, octal | `0x1:0xf`, `0b1:0b101`, `0o1:0o7` | préfixe et casse conservés |
+| Chiffres arabes orientaux | `٠:٥` | `٠` `١` `٢` `٣` `٤` `٥` |
+| Nombres en anglais | `one:five` | `one` `two` `three` `four` `five` |
+| Ordinaux en anglais | `first:fifth` | `first` `second` `third` … |
+| Abréviations ordinales anglaises | `1st:5th` | `1st` `2nd` `3rd` `4th` `5th` |
+| Nombres en français | `un:cinq` | `un` `deux` `trois` … |
+| Ordinaux en français | `premier:cinquième` | `premier` `deuxième` … |
+| Abréviations ordinales françaises | `1er:5e` | `1er` `2e` `3e` `4e` `5e` |
+| Nombres chinois | `一:五` | `一` `二` `三` `四` `五` |
+| Chiffres financiers chinois | `壹:伍` | `壹` `贰` `叁` `肆` `伍` |
+| Troncs célestes 天干 | `甲:癸` | `甲` `乙` `丙` … |
+| Branches terrestres 地支 | `子:辰` | `子` `丑` `寅` `卯` `辰` |
+| Termes solaires 节气 | `立春:惊蛰` ou `立春:驚蟄` | `立春` `雨水` `惊蛰` ou `立春` `雨水` `驚蟄` |
+| Lettre grecque | `α:ε` ou `Α:Δ` | `α` `β` `γ` `δ` `ε` ou `Α` `Β` `Γ` `Δ` |
+| Noms des lettres grecques | `Alpha:Delta` | `Alpha` `Beta` `Gamma` `Delta` |
+| Lettre cyrillique | `а:г` ou `А:Г` | `а` `б` `в` `г` ou `А` `Б` `В` `Г` |
+| Lettre hébraïque | `א:ה` | `א` `ב` `ג` `ד` `ה` |
+| Alphabet phonétique de l’OTAN | `Alfa:Echo` | `Alfa` `Bravo` `Charlie` … |
+| Signe astrologique | `Aries:Cancer` | `Aries` `Taurus` `Gemini` `Cancer` |
+| Nom de mois | `Jan:Jun`, `January:June`, `janvier:juin`, `1月:6月` | forme courte ou longue, casse et langue conservées |
+| Jour de la semaine | `Mon:Fri`, `monday:friday`, `lundi:vendredi`, `星期一:星期五` | forme courte ou longue, casse et langue conservées |
+| Date | `2023-01-01:2023-01-05` | aussi les séparateurs `.` `/` `,` et les ordres `D-M-Y`, `M-D-Y` |
+| Année-mois | `2023-01:2023-06` | avance par mois |
+| Dates avec nom de mois | `Dec 25, 2023:Dec 29, 2023`, `Dec 25 2023:Dec 29 2023`, `25 Dec 2023:29 Dec 2023` | le format de `start` est conservé |
+| Date est-asiatique | `2023年12月25日:2023年12月29日`, `2023年12月:2024年3月`, `2023년 12월 25일:2023년 12월 29일` | chaque champ est étiqueté, rien n’est deviné |
+
+## Bon à savoir
+
+- **Le style de `start` est conservé.** `MON:FRI` reste en majuscules, `0XA:0XF` garde son
+  préfixe en majuscules, `01:10` garde son zéro initial et `一:十` reste en chinois
+  simplifié.
+- **Les types cycliques reviennent au début.** `fri::2` continue après dimanche dans la
+  semaine suivante, et `甲::3` boucle sur les dix troncs.
+- **`step` peut s’écrire dans n’importe quelle base.** `0x0A::0x10` avance de seize, comme
+  `0x0A::16`.
+- **`start` et `stop` doivent être du même type.** `Mon:5` ne produit rien, et la zone de
+  saisie vous le signale avant que vous n’appuyiez sur <kbd>Entrée</kbd>. Attention aux
+  paires qui partagent un type inattendu : `1` et `a` sont tous deux des chiffres
+  hexadécimaux, donc `1:a` compte `1` `2` … `9` `a` au lieu d’échouer.
+- **Chiffres romains ou lettres.** `I`, `V`, `X`, `C` et les autres sont aussi des lettres
+  latines tout à fait valides, et une lettre seule est lue comme une lettre. Écrivez au
+  moins une extrémité avec deux caractères ou plus (`II:X` ou `I:XX`) pour obtenir des
+  chiffres romains.
+- **Les noms de mois et de jours fonctionnent dans une quarantaine de langues.**
+  `janvier:juin`, `Januar:Juni`, `enero:junio`, `январь:июнь`, `ocak:haziran`, `1月:6月`
+  et `星期一:星期五` sont comptés et réécrits chacun dans leur langue, en gardant la casse
+  et la forme courte ou longue que vous avez tapée. Un nom partagé par plusieurs langues
+  est tranché par l’autre extrémité de la plage quand c’est possible : `mars:juin` est du
+  français, `mars:maj` du suédois. Sans indice, la langue la plus répandue l’emporte.
+- **Les nombres chinois sont lus sous leur forme canonique.** `一万` compte en chiffres
+  ordinaires et `壹万` en chiffres financiers. Un `万` seul n’est ni l’un ni l’autre
+  (aucun nombre chinois ne s’écrit ainsi), il n’est donc pas reconnu, pas plus que `一十`
+  à la place de `十`.
+
+## Paramètres liés aux plages
+
+`rangeTransform.defaultSequenceLength` (défaut `10`) fixe le nombre d’éléments générés pour
+un seul curseur quand la plage n’a pas de `stop`. `rangeTransform.rememberLastInput`
+préremplit la zone de saisie avec la dernière plage utilisée.

@@ -1,0 +1,27 @@
+{
+  "name": "range-transform-site",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "build:pages": "astro build && rm -rf out && mkdir -p out && mv dist out/range-transform && printf '/ /range-transform/ 302\\n' > out/_redirects",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.1",
+    "@astrojs/starlight": "^0.41.4",
+    "@lucide/astro": "^1.47.0",
+    "astro": "^7.1.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sharp": "^0.34.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

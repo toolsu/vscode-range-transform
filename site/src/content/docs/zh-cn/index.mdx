@@ -1,0 +1,133 @@
+---
+title: Range & Transform
+description: 基于 convnum 的 VS Code 扩展。用 2:9、Mon:Fri:2、一:十 这样的范围填充多光标选区，或用 JavaScript 表达式改写选区，并实时预览行内差异。
+template: splash
+hero:
+  tagline: 用 Mon:Fri、一:十 这样的序列填充多光标选区，或用一行 JavaScript 改写选区，输入时实时显示行内差异。
+  actions:
+    - text: 从 Marketplace 安装
+      link: https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform
+      icon: external
+    - text: 阅读使用指南
+      link: /range-transform/zh-cn/insert-sequence/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/toolsu/vscode-range-transform
+      icon: external
+      variant: minimal
+---
+
+import { Aside, LinkCard, CardGrid, TabItem, Tabs } from '@astrojs/starlight/components'
+
+**Range & Transform** 是基于 [convnum](https://toolsu.com/convnum/zh-cn/) 的 VS Code 扩展，convnum 能识别的所有数字体系和日期格式都可以作为范围：`1:10`、`Mon:Fri`、`II:X`、`一:十`、`2024-01-01::7` 等等。每个选区也可以用一行 JavaScript 改写，整次修改只占一步撤销。
+
+## 安装
+
+<Tabs syncKey="vscode-install">
+<TabItem label="VS Code">
+
+打开 **Quick Open**（<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>P</kbd>），运行：
+
+```text
+ext install tomchen.range-transform
+```
+
+也可以在扩展视图中搜索 **Range & Transform**，或者从 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform) 安装。
+
+</TabItem>
+<TabItem label="VSCodium、Cursor 等">
+
+使用 Open VSX 扩展源的编辑器可以从 [open-vsx.org](https://open-vsx.org/extension/tomchen/range-transform) 安装，或在扩展视图中搜索 **Range & Transform**。
+
+</TabItem>
+<TabItem label="命令行">
+
+```sh
+code --install-extension tomchen.range-transform
+```
+
+</TabItem>
+</Tabs>
+
+需要 VS Code 1.103 或更高版本。它在受限工作区和虚拟工作区中同样可用：它只会改写当前编辑器中的文本，也只会运行你自己输入的表达式。
+
+## 三个命令
+
+打开命令面板（<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>），输入 `rt`、`range` 或 `transform`：
+
+| 命令 | 输入什么 | 效果 |
+| --- | --- | --- |
+| **Range & Transform: Insert Sequence from Range** | `1:10`、`Mon:Fri:2`、`一:十` | 每个光标依次填入序列的下一项 |
+| **Range & Transform: Transform Selections** | `n*3`、`*3`、`upper`、`.trim()` | 每个选区被替换为表达式的结果 |
+| **Range & Transform: Transform Selections (Advanced)** | 多行表达式，在带类型和自动补全的真正编辑器中编写 | 效果相同，但有更多空间慢慢写 |
+
+三个命令在输入时都会显示**实时行内差异**：被替换的文本显示为红色删除线，替换后的文本以绿色显示在旁边。前两个命令在输入框中运行，<kbd>Enter</kbd> 应用，<kbd>Esc</kbd> 放弃。第三个命令在真正的编辑器中运行，关闭标签页即应用。无论哪种方式，整次改写都只占一步撤销。
+
+<CardGrid>
+  <LinkCard
+    title="插入序列"
+    description="start:stop:step 语法，以及起始值可以是哪些类型。"
+    href="/range-transform/zh-cn/insert-sequence/"
+  />
+  <LinkCard
+    title="变换选区"
+    description="表达式、简写、变量、辅助函数和 Advanced 编辑器。"
+    href="/range-transform/zh-cn/transform/"
+  />
+</CardGrid>
+
+## 创建多个选区
+
+所有功能在单个选区上也能用，但多个选区时才最能体现价值。下面是值得掌握的方法，大多来自 VS Code 的[基础编辑](https://code.visualstudio.com/docs/editing/codebasics#_multiple-selections-multicursor)文档：
+
+- 按住鼠标中键拖动，**按列选择**
+- <kbd>Alt</kbd>/<kbd>⌥</kbd> + 单击，**添加光标**
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>D</kbd>，**选中下一个相同内容**
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd>，**选中所有相同内容**
+- 搜索后按 <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>Enter</kbd>，**选中所有匹配项**
+- <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd>，**在下方或上方添加光标**（macOS 上是 <kbd>⌥</kbd> + <kbd>⌘</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd>，Linux 上是 <kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>↓</kbd>/<kbd>↑</kbd>）
+- <kbd>Shift</kbd> + <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>I</kbd>，**在选中的每一行末尾放置光标**
+- <kbd>Shift</kbd> + <kbd>Alt</kbd>/<kbd>⌥</kbd> + <kbd>→</kbd>/<kbd>←</kbd>，**扩大或缩小选区**
+- <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>L</kbd>，**选中当前行**
+
+完整的快捷键速查表：[Windows](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-windows.pdf)、[Linux](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-linux.pdf)、[macOS](https://code.visualstudio.com/shortcuts/keyboard-shortcuts-macos.pdf)。
+
+## 设置
+
+| 设置 | 默认值 | 说明 |
+| --- | --- | --- |
+| `rangeTransform.defaultSequenceLength` | `10` | 只有一个光标且范围没有 `stop` 时，生成多少项 |
+| `rangeTransform.preview.maxLength` | `120` | 行内预览中每一项在多少个字符处截断 |
+| `rangeTransform.rememberLastInput` | `true` | 输入框中预先填入上次输入的内容 |
+
+## 快捷键
+
+默认只占用一个快捷键：当 Advanced 编辑器的临时文件是当前标签页时，<kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> 应用变换。它只作用于那一个文件，在其他地方不会触发。三个命令刻意没有设置快捷键：扩展的快捷键优先级高于内置快捷键，占用任何按键，都会在安装期间把这个按键从你手里拿走。
+
+要绑定自己的快捷键，运行 **Preferences: Open Keyboard Shortcuts (JSON)**，然后添加：
+
+```jsonc
+{
+  "key": "ctrl+k r", // macOS 上用 "cmd+k r"
+  "command": "range-transform.insertSequence",
+  "when": "editorTextFocus && !editorReadonly"
+},
+{
+  "key": "ctrl+k t",
+  "command": "range-transform.transform",
+  "when": "editorTextFocus && !editorReadonly"
+},
+{
+  "key": "ctrl+k shift+t",
+  "command": "range-transform.transformAdvanced",
+  "when": "editorTextFocus && !editorReadonly"
+}
+```
+
+<Aside type="caution" title="避免使用 Ctrl + Alt 组合">
+Windows 会把 <kbd>AltGr</kbd> 报告为 <kbd>Ctrl</kbd> + <kbd>Alt</kbd>。在任何用 <kbd>AltGr</kbd> 输入字符的键盘布局上（德语、法语、波兰语、北欧布局等），<kbd>Ctrl</kbd> + <kbd>Alt</kbd> 快捷键会吞掉其中某个字符。
+</Aside>
+
+## 源码与反馈
+
+扩展以 MIT 许可证开源，[源代码](https://github.com/toolsu/vscode-range-transform)、[更新日志](https://github.com/toolsu/vscode-range-transform/blob/main/CHANGELOG.md)和[问题反馈](https://github.com/toolsu/vscode-range-transform/issues)都在 GitHub 上。

@@ -3,6 +3,7 @@
 // out/range-transform/, so the request path maps straight onto them.
 {
   "name": "range-transform",
+  "account_id": "143e39b152b1e8ec74e86a904f619e62",
   "compatibility_date": "2026-09-23",
   "assets": {
     "directory": "./out",

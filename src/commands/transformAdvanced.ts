@@ -57,15 +57,6 @@ interface ScratchSession {
    */
   latestText: string
   /**
-   * The text last written to disk.
-   *
-   * The close-time revert is a change *to exactly the on-disk content*, which is what
-   * makes it recognisable. `TextDocumentChangeEvent.reason` cannot be used on its own —
-   * it is `undefined` for a plain edit too — but it does mark undo and redo, so pairing
-   * the two tells a revert apart from an undo that happens to land on the saved text.
-   */
-  savedText: string
-  /**
    * Set once the source document changes underneath the session.
    *
    * The captured selections are plain ranges; they do not move when the document is
@@ -201,11 +192,8 @@ function updatePreview(current: ScratchSession): void {
 async function flushSave(current: ScratchSession): Promise<void> {
   clearTimeout(current.saveTimer)
   current.saveTimer = undefined
-  const pending = current.latestText
   try {
-    if (await current.document.save()) {
-      current.savedText = pending
-    }
+    await current.document.save()
   } catch {
     // Saving failed. Closing may then prompt, which is better than losing the tab.
   }
@@ -390,11 +378,18 @@ function installListeners(current: ScratchSession): void {
       // Closing a tab whose buffer is still dirty makes VS Code restore the on-disk
       // content and fire this event before the tab actually goes. Treating that as an
       // edit would replace what the user wrote with the untouched template, so closing
-      // to apply would silently do nothing. Undo and redo can land on the same text, so
-      // they are excluded by `reason` — only they carry one.
+      // to apply would silently do nothing.
+      //
+      // The revert is the one change here that leaves the document clean: an edit always
+      // makes it dirty, and undo or redo, which can also land on the saved text, carry a
+      // `reason`. The dirty flag arrives with the event itself, so it is decided without
+      // reference to our own saves. Comparing against the last text we saved did not
+      // hold: a debounced `save()` racing the close resolves `true` without writing
+      // anything once the buffer is already reverted, and that reply can reach the
+      // extension before the revert does, which let the revert through on macOS.
       if (
         event.reason === undefined &&
-        text === current.savedText &&
+        !event.document.isDirty &&
         text !== current.latestText
       ) {
         return
@@ -549,7 +544,6 @@ export async function transformAdvancedCommand(
       decorationType,
       disposables: [],
       latestText: contents,
-      savedText: contents,
       stale: false,
       finishing: false,
     }

@@ -92,8 +92,9 @@ function settle(ms = 250): Promise<void> {
 
 /**
  * Waits until `condition` holds, or `timeoutMs` passes. For outcomes that arrive
- * asynchronously, such as the edit applied when a tab closes, where a fixed `settle`
- * is too short on a slow runner: the macOS runners started missing a 500 ms window.
+ * asynchronously, such as a tab closing or the edit applied when it does, where a fixed
+ * `settle` is too short on a slow runner (the macOS runners miss 250-500 ms windows).
+ * Checks that something does *not* happen still need a fixed `settle`.
  */
 async function waitFor(
   condition: () => boolean,
@@ -147,6 +148,7 @@ suite('advanced transform', () => {
     await settle()
 
     assert.equal(editor.document.getText(), '10\n20\n30')
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0, 'the scratch tab should be closed')
   })
 
@@ -186,6 +188,7 @@ suite('advanced transform', () => {
     await settle()
 
     assert.equal(editor.document.getText(), '1\n2')
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0)
   })
 
@@ -206,6 +209,7 @@ suite('advanced transform', () => {
     await settle()
 
     assert.equal(editor.document.getText(), '1\n2')
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0)
   })
 
@@ -230,6 +234,7 @@ suite('advanced transform', () => {
     await settle()
 
     assert.equal(editor.document.getText(), '7')
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0)
   })
 
@@ -312,6 +317,7 @@ suite('advanced transform', () => {
     await settle(500)
 
     assert.equal(editor.document.getText(), '5\n10\n15')
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0)
   })
 
@@ -412,6 +418,7 @@ suite('advanced transform', () => {
     // The scratch tab must dismiss cleanly rather than resurrect itself.
     await vscode.window.tabGroups.close(scratchTabs())
     await settle(600)
+    await waitFor(() => scratchTabs().length === 0)
     assert.equal(scratchTabs().length, 0, 'a dead session must be dismissable')
   })
 

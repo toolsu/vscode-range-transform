@@ -3,7 +3,7 @@
 Fill multi-cursor selections with a sequence, or rewrite them with a line of JavaScript —
 watching an inline diff of the result as you type.
 
-[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/tomchen.range-transform?label=Visual%20Studio%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform)
+[![Visual Studio Marketplace](https://vsmarketplacebadges.dev/version/tomchen.range-transform.svg?label=Visual%20Studio%20Marketplace&color=007acc)](https://marketplace.visualstudio.com/items?itemName=tomchen.range-transform)
 [![Open VSX](https://img.shields.io/open-vsx/v/tomchen/range-transform?label=Open%20VSX&color=%23a60ee5)](https://open-vsx.org/extension/tomchen/range-transform)
 [![Test](https://github.com/toolsu/vscode-range-transform/actions/workflows/test.yml/badge.svg)](https://github.com/toolsu/vscode-range-transform/actions/workflows/test.yml)
 [![License](https://img.shields.io/github/license/toolsu/vscode-range-transform)](LICENSE)

@@ -703,12 +703,25 @@ starlight-menu-button[aria-expanded='true'] button {
 }
 
 .hero-x-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem 1.1rem;
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
   margin-top: 0.4rem;
   animation: hero-rise 900ms var(--cn-ease-out) 180ms both;
+}
+
+.hero-x-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.75rem;
+}
+
+/* Text links line up with the buttons' edge despite their own inline padding. */
+.hero-x-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.1rem;
+  margin-inline-start: -0.35rem;
 }
 
 @keyframes hero-rise {
@@ -862,6 +875,20 @@ starlight-menu-button[aria-expanded='true'] button {
 @media (max-width: 30rem) {
   .install-pill-toast {
     display: none;
+  }
+  /* The VS Code install command is long; keep it on one line on a phone. */
+  .install-pill {
+    max-width: 100%;
+    box-sizing: border-box;
+    gap: 0.45rem;
+    padding-left: 0.75rem;
+  }
+  .install-pill code {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 

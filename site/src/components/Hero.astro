@@ -8,6 +8,11 @@ const PAGE_TITLE_ID = '_top'
 
 const { data } = Astro.locals.starlightRoute.entry
 const { title = data.title, tagline, actions = [] } = data.hero || {}
+// Buttons share one row and text links sit on the next, so they never wrap into each other.
+const actionGroups = [
+  { className: 'hero-x-buttons', items: actions.filter((a) => a.variant !== 'minimal') },
+  { className: 'hero-x-links', items: actions.filter((a) => a.variant === 'minimal') },
+].filter((group) => group.items.length > 0)
 const locale = localeOf(Astro.locals.starlightRoute.locale)
 const t = text[locale]
 const installCommand = 'ext install tomchen.range-transform'
@@ -30,25 +35,29 @@ const installCommand = 'ext install tomchen.range-transform'
     {tagline && <p class="hero-x-tagline" set:html={tagline} />}
 
     {
-      actions.length > 0 && (
+      actionGroups.length > 0 && (
         <div class="hero-x-actions">
-          {actions.map(({ icon, link: href, text: label, variant, attrs }) => {
-            const external = /^https?:/.test(href)
-            return (
-              <a
-                href={href}
-                class:list={[
-                  variant === 'minimal' ? 'fx-link' : 'fx-btn',
-                  variant === 'secondary' ? 'fx-ghost' : variant !== 'minimal' && 'fx-primary',
-                ]}
-                {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                {...attrs}
-              >
-                <span class="fx-btn-label">{label}</span>
-                {icon?.name && <Icon name={icon.name} size="1.15rem" class="fx-btn-icon" />}
-              </a>
-            )
-          })}
+          {actionGroups.map(({ className, items }) => (
+            <div class={className}>
+              {items.map(({ icon, link: href, text: label, variant, attrs }) => {
+                const external = /^https?:/.test(href)
+                return (
+                  <a
+                    href={href}
+                    class:list={[
+                      variant === 'minimal' ? 'fx-link' : 'fx-btn',
+                      variant === 'secondary' ? 'fx-ghost' : variant !== 'minimal' && 'fx-primary',
+                    ]}
+                    {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    {...attrs}
+                  >
+                    <span class="fx-btn-label">{label}</span>
+                    {icon?.name && <Icon name={icon.name} size="1.15rem" class="fx-btn-icon" />}
+                  </a>
+                )
+              })}
+            </div>
+          ))}
         </div>
       )
     }

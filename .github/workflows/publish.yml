@@ -85,7 +85,9 @@ jobs:
           bun-version: latest
 
       # Microsoft Entra ID instead of a personal access token: GitHub's OIDC token is
-      # exchanged for the managed identity, which is a Contributor on the publisher.
+      # exchanged for the managed identity, which is a Contributor on the publisher. Its
+      # Azure DevOps profile id, which is what the Marketplace's Members search takes, is
+      # b283b556-6eda-6bec-828e-73d360b06a3c.
       - name: Sign in to Azure as the publishing identity
         uses: azure/login@v2
         with:

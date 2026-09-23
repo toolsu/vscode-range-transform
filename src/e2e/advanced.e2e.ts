@@ -90,6 +90,21 @@ function settle(ms = 250): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Waits until `condition` holds, or `timeoutMs` passes. For outcomes that arrive
+ * asynchronously, such as the edit applied when a tab closes, where a fixed `settle`
+ * is too short on a slow runner: the macOS runners started missing a 500 ms window.
+ */
+async function waitFor(
+  condition: () => boolean,
+  timeoutMs = 5000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!condition() && Date.now() < deadline) {
+    await settle(50)
+  }
+}
+
 suite('advanced transform', () => {
   let decorationType: vscode.TextEditorDecorationType
 
@@ -247,7 +262,10 @@ suite('advanced transform', () => {
     // clean or not. What that leaves this test proving is the more valuable half — that
     // the close-time revert does not replace the expression with the template.
     await vscode.window.tabGroups.close(scratchTabs())
-    await settle(500)
+    await waitFor(
+      () =>
+        editor.document.getText() === 'A\nB\nC' && scratchTabs().length === 0,
+    )
 
     assert.equal(editor.document.getText(), 'A\nB\nC')
     assert.equal(scratchTabs().length, 0)
